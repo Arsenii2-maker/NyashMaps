@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NyashMaps Next-Gen</title>
+    <title>NyashMaps Next-Gen v4.0</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- MapLibre GL JS -->
@@ -13,13 +13,13 @@
         body { margin: 0; padding: 0; overflow: hidden; background-color: #0b0f19; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
         
-        /* Плавные анимации появления элементов интерфейса */
         .floating-widget { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .bottom-sheet-hidden { transform: translate(-50%, 150%); opacity: 0; pointer-events: none; }
-        .sidebar-card-hidden { transform: translateX(-120%); opacity: 0; pointer-events: none; }
+        .sidebar-card-hidden { transform: translateX(-125%); opacity: 0; pointer-events: none; }
         
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="font-sans text-slate-900 antialiased selection:bg-indigo-500 selection:text-white">
@@ -27,15 +27,15 @@
     <!-- КАРТА НА ВЕСЬ ЭКРАН -->
     <div id="map"></div>
 
-    <!-- ТОП-ЦЕНТР: КАТЕГОРИИ ПОИСКА (Уникальная фишка как в Google/Apple Maps) -->
-    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2 max-w-[90%] overflow-x-auto no-scrollbar py-1">
-        <button onclick="fetchLocalPOIs('cafe', '☕')" class="flex items-center space-x-1 px-3 py-1.5 bg-white/90 backdrop-blur-md border border-slate-200/80 shadow-md rounded-full text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition active:scale-95 whitespace-nowrap">
+    <!-- ТОП-ЦЕНТР: КАТЕГОРИИ ПОИСКА -->
+    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2 max-w-[85%] overflow-x-auto no-scrollbar py-1">
+        <button onclick="fetchLocalPOIs('cafe', '☕')" class="flex items-center space-x-1 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-md rounded-full text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition active:scale-95 whitespace-nowrap">
             <span>☕</span> <span>Кафе</span>
         </button>
-        <button onclick="fetchLocalPOIs('restaurant', '🍕')" class="flex items-center space-x-1 px-3 py-1.5 bg-white/90 backdrop-blur-md border border-slate-200/80 shadow-md rounded-full text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition active:scale-95 whitespace-nowrap">
+        <button onclick="fetchLocalPOIs('restaurant', '🍕')" class="flex items-center space-x-1 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-md rounded-full text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition active:scale-95 whitespace-nowrap">
             <span>🍕</span> <span>Еда</span>
         </button>
-        <button onclick="fetchLocalPOIs('park', '🌳')" class="flex items-center space-x-1 px-3 py-1.5 bg-white/90 backdrop-blur-md border border-slate-200/80 shadow-md rounded-full text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition active:scale-95 whitespace-nowrap">
+        <button onclick="fetchLocalPOIs('park', '🌳')" class="flex items-center space-x-1 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-md rounded-full text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition active:scale-95 whitespace-nowrap">
             <span>🌳</span> <span>Парки</span>
         </button>
         <button onclick="clearPOIMarkers()" id="btn-clear-poi" class="hidden flex items-center space-x-1 px-3 py-1.5 bg-rose-500 text-white shadow-md rounded-full text-xs font-bold hover:bg-rose-600 transition active:scale-95 whitespace-nowrap">
@@ -45,18 +45,16 @@
 
     <!-- СЛЕВА: ПАРИЯЩАЯ КАРТОЧКА НАВИГАЦИИ -->
     <div class="absolute top-4 left-4 z-20 flex items-start space-x-2">
-        <!-- Кнопка развертывания, если панель скрыта -->
         <button id="btn-restore-sidebar" class="hidden w-10 h-10 bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl rounded-xl flex items-center justify-center text-slate-600 hover:text-slate-900 transition active:scale-95">🗺️</button>
 
         <div id="sidebar-card" class="floating-widget w-80 bg-white/95 backdrop-blur-lg rounded-2xl shadow-xl border border-slate-200/80 p-4 flex flex-col max-h-[calc(100vh-40px)]">
-            <!-- Шапка виджета -->
             <div class="flex items-center justify-between mb-3.5">
                 <div class="flex items-center space-x-2">
                     <div class="w-6 h-6 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-lg flex items-center justify-center text-white font-black text-[10px]">N</div>
                     <span class="text-xs font-bold tracking-tight text-slate-800">NyashMaps Pro</span>
                 </div>
-                <div class="flex items-center space-x-1">
-                    <button onclick="clearAllRouteData()" class="text-[10px] text-slate-400 font-bold hover:text-rose-500 px-1 transition">Сбросить</button>
+                <div class="flex items-center space-x-2">
+                    <button onclick="clearAllRouteData()" class="text-[10px] text-slate-400 font-bold hover:text-rose-500 transition">Сбросить</button>
                     <button id="btn-close-sidebar" class="text-slate-400 hover:text-slate-700 p-1 text-xs font-bold">◀</button>
                 </div>
             </div>
@@ -72,7 +70,6 @@
                     <input id="inp-end" type="text" readonly placeholder="Сюда (кликните на карту)" class="w-full text-xs bg-transparent focus:outline-none text-slate-700 truncate cursor-default">
                 </div>
                 
-                <!-- Кнопки выбора транспорта -->
                 <div class="grid grid-cols-3 gap-1 pt-1.5">
                     <button onclick="changeTransportMode('driving', this)" class="mode-btn py-1 bg-white border border-slate-200 rounded-md text-slate-600 text-[11px] font-medium transition hover:bg-slate-50">🚗 Авто</button>
                     <button onclick="changeTransportMode('foot', this)" class="mode-btn py-1 bg-indigo-600 text-white border border-indigo-600 rounded-md text-[11px] font-medium transition">🏃‍♂️ Пешком</button>
@@ -83,34 +80,48 @@
             <!-- Избранные места -->
             <div class="flex-1 flex flex-col overflow-hidden">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Избранное ⭐</span>
-                <div id="favorites-box" class="space-y-1 overflow-y-auto pr-0.5 flex-1 custom-scroll text-xs">
-                    <!-- Места из локалсторейджа -->
-                </div>
+                <div id="favorites-box" class="space-y-1 overflow-y-auto pr-0.5 flex-1 custom-scroll text-xs"></div>
             </div>
         </div>
     </div>
 
-    <!-- СВЕРХУ СПРАВА: КАРТОЧКА МЕТАДАННЫХ МАРШРУТА (Появляется только при расчете) -->
-    <div id="route-meta-card" class="hidden absolute top-4 right-16 z-20 bg-emerald-600 text-white px-4 py-2 rounded-xl shadow-xl border border-emerald-500/30 flex flex-col items-start animate-fade-in">
-        <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-200">Маршрут построен</span>
-        <div class="flex items-baseline space-x-1.5">
-            <span id="meta-duration" class="text-sm font-black">-- мин</span>
-            <span id="meta-distance" class="text-xs font-medium text-emerald-100">(-- км)</span>
+    <!-- СВЕРХУ СПРАВА: ИНФО-КАРТОЧКА МАРШРУТА -->
+    <div id="route-meta-card" class="hidden absolute top-4 right-16 z-20 bg-indigo-600 text-white px-4 py-2 rounded-xl shadow-xl border border-indigo-500/30 flex items-center space-x-3">
+        <div class="flex flex-col">
+            <span class="text-[8px] font-bold uppercase tracking-wider text-indigo-200">Маршрут построен</span>
+            <div class="flex items-baseline space-x-1">
+                <span id="meta-duration" class="text-sm font-black">-- мин</span>
+                <span id="meta-distance" class="text-[11px] font-medium text-indigo-100">(-- км)</span>
+            </div>
+        </div>
+        <button onclick="clearAllRouteData()" class="bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg p-1 text-xs transition">✕</button>
+    </div>
+
+    <!-- СПРАВА: ПРОФЕССИОНАЛЬНЫЙ БЛОК УПРАВЛЕНИЯ КАМЕРОЙ И СЛОЯМИ -->
+    <div class="absolute top-4 right-4 z-20 flex flex-col space-y-2">
+        <!-- Геопозиция -->
+        <button onclick="locateUserDevice(true)" title="Где я?" class="w-9 h-9 bg-white shadow-lg border border-slate-200 rounded-xl flex items-center justify-center text-base hover:bg-slate-50 transition active:scale-95">🎯</button>
+        
+        <!-- Кастомный блок Зумирования (Решает проблему скролла) -->
+        <div class="flex flex-col bg-white shadow-lg border border-slate-200 rounded-xl overflow-hidden">
+            <button onclick="map.zoomIn({duration:200})" title="Приблизить" class="w-9 h-9 font-bold text-lg text-slate-600 hover:bg-slate-50 border-b border-slate-100 transition">+</button>
+            <button onclick="map.zoomOut({duration:200})" title="Отдалить" class="w-9 h-9 font-bold text-lg text-slate-600 hover:bg-slate-50 transition">−</button>
+        </div>
+
+        <!-- Слои и Пробки -->
+        <div class="flex flex-col space-y-1 relative">
+            <button id="btn-layers" class="w-9 h-9 bg-white shadow-lg border border-slate-200 rounded-xl flex items-center justify-center text-base hover:bg-slate-50 transition">🗺️</button>
+            <button onclick="toggleTrafficLayer(this)" id="btn-traffic" title="Показать пробки" class="w-9 h-9 bg-white shadow-lg border border-slate-200 rounded-xl flex items-center justify-center text-base hover:bg-slate-50 transition">🚦</button>
+            
+            <div id="dropdown-layers" class="hidden absolute right-0 top-11 bg-white rounded-xl shadow-xl border border-slate-200 p-1 flex flex-col space-y-0.5 min-w-[100px]">
+                <button onclick="setMapStyle('streets')" class="px-2 py-1 text-left text-xs font-bold rounded-lg bg-indigo-50 text-indigo-600">Схема</button>
+                <button onclick="setMapStyle('satellite')" class="px-2 py-1 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50">Спутник</button>
+                <button onclick="setMapStyle('dark')" class="px-2 py-1 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50">Ночь</button>
+            </div>
         </div>
     </div>
 
-    <!-- СПРАВА: ПЛАНШЕТ УПРАВЛЕНИЯ КАРТОЙ -->
-    <div class="absolute top-4 right-4 z-20 flex flex-col space-y-1.5">
-        <button onclick="locateUserDevice()" title="Определить мое положение" class="w-9 h-9 bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg rounded-xl flex items-center justify-center text-base hover:bg-slate-50 transition active:scale-95">🎯</button>
-        <button id="btn-layers" class="w-9 h-9 bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg rounded-xl flex items-center justify-center text-base hover:bg-slate-50 transition">🗺️</button>
-        <div id="dropdown-layers" class="hidden absolute right-0 top-20 bg-white rounded-xl shadow-xl border border-slate-200 p-1 flex flex-col space-y-0.5 min-w-[100px]">
-            <button onclick="setMapStyle('streets')" class="px-2 py-1 text-left text-xs font-bold rounded-lg bg-indigo-50 text-indigo-600">Схема</button>
-            <button onclick="setMapStyle('satellite')" class="px-2 py-1 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50">Спутник</button>
-            <button onclick="setMapStyle('dark')" class="px-2 py-1 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50">Ночь</button>
-        </div>
-    </div>
-
-    <!-- СНИЗУ: ОСТРОВНАЯ ПАНЕЛЬ ИНФОРМАЦИИ (Инфо-панель Apple Style, скрывается ИДЕАЛЬНО) -->
+    <!-- СНИЗУ: ИНФО-ПАНЕЛЬ ОБЪЕКТА -->
     <div id="bottom-sheet" class="floating-widget bottom-sheet-hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-2xl rounded-2xl p-4 z-30 w-[90%] sm:w-[420px] flex flex-col space-y-3">
         <div class="flex items-start justify-between">
             <div class="overflow-hidden pr-4 flex-1">
@@ -119,8 +130,8 @@
                 <p id="sheet-subtitle" class="text-[10px] text-slate-400 font-mono mt-0.5">00.0000, 00.0000</p>
             </div>
             <div class="flex items-center space-x-1.5 flex-shrink-0">
-                <button onclick="handleFavoriteToggle()" id="sheet-fav-btn" title="В избранное" class="w-7 h-7 bg-slate-50 hover:bg-amber-50 border border-slate-200 rounded-lg flex items-center justify-center text-xs transition">☆</button>
-                <button onclick="closeBottomSheet()" title="Закрыть" class="w-7 h-7 bg-slate-50 hover:bg-rose-50 border border-slate-200 rounded-lg flex items-center justify-center text-xs text-slate-400 hover:text-rose-500 font-bold transition">✕</button>
+                <button onclick="handleFavoriteToggle()" id="sheet-fav-btn" class="w-7 h-7 bg-slate-50 hover:bg-amber-50 border border-slate-200 rounded-lg flex items-center justify-center text-xs transition">☆</button>
+                <button onclick="closeBottomSheet()" class="w-7 h-7 bg-slate-50 hover:bg-rose-50 border border-slate-200 rounded-lg flex items-center justify-center text-xs text-slate-400 hover:text-rose-500 font-bold transition">✕</button>
             </div>
         </div>
         <div class="grid grid-cols-2 gap-2">
@@ -130,7 +141,6 @@
     </div>
 
     <script>
-        // ВАЖНО: Твой API-ключ MapTiler
         const MAPTILER_KEY = 'p3hK1aeFahnKHvtUUKfN';
 
         const mapStyles = {
@@ -139,34 +149,41 @@
             dark: `https://api.maptiler.com/maps/darkmatter/style.json?key=${MAPTILER_KEY}`
         };
 
+        // НАСТРОЙКА КАРТЫ С УЛУЧШЕННОЙ ПЛАВНОСТЬЮ КАМЕРЫ
         const map = new maplibregl.Map({
             container: 'map',
             style: mapStyles.streets,
-            center: [37.6173, 55.7558], // Москва по умолчанию
-            zoom: 11,
+            center: [37.6173, 55.7558], // Дефолт (сразу перепишется геолокацией)
+            zoom: 12,
+            zoomSnap: 0.1,         // Более плавный шаг приближения
+            wheelZoomRate: 1/150,  // Комфортная скорость зума колесиком
             antialias: true
         });
 
-        // Глобальные состояния приложения
+        // Добавляем профессиональную линейку масштаба (как в Google)
+        map.addControl(new maplibregl.ScaleControl({maxWidth: 80, unit: 'metric'}), 'bottom-left');
+
         let activeLngLat = null;
         let pointsData = { start: null, end: null, startName: '', endName: '' };
-        let activeTransport = 'foot'; // 'driving', 'foot', 'bike'
-        let savedPlaces = JSON.parse(localStorage.getItem('nyash_premium_favs')) || [];
+        let activeTransport = 'foot';
+        let savedPlaces = JSON.parse(localStorage.getItem('nyash_premium_favs_v4')) || [];
         
-        // Массивы и переменные под маркеры
         let startMarker = null;
         let endMarker = null;
         let userDeviceMarker = null;
         let poiMarkers = [];
+        let isTrafficActive = false;
 
-        // --- ОБРАБОТКА КЛИКА ПО КАРТЕ ---
+        // --- ИНИЦИАЛИЗАЦИЯ: СТАРТ СРАЗУ НА ТВОЕМ МЕСТЕ ---
+        map.on('load', () => {
+            locateUserDevice(false); // Запускаем скрытое определение позиции без лишних алертов
+        });
+
+        // --- КЛИК ПО КАРТЕ ---
         map.on('click', async (e) => {
-            // Если кликнули по маркеру, библиотека может всплывать, отсекаем ложные вызовы
             if (e.originalEvent.target.closest('.maplibregl-marker')) return;
-
             activeLngLat = e.lngLat;
             
-            // Настраиваем базовые данные в нижнюю панель и выдвигаем её
             document.getElementById('sheet-badge').innerText = "Выбранная точка";
             document.getElementById('sheet-title').innerText = "Определяем адрес...";
             document.getElementById('sheet-subtitle').innerText = `${activeLngLat.lat.toFixed(5)}, ${activeLngLat.lng.toFixed(5)}`;
@@ -174,7 +191,6 @@
             refreshFavButtonIcon();
             document.getElementById('bottom-sheet').classList.remove('bottom-sheet-hidden');
 
-            // Запрашиваем реальное имя локации (Reverse Geocoding)
             try {
                 const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${activeLngLat.lat}&lon=${activeLngLat.lng}&accept-language=ru`);
                 const data = await response.json();
@@ -185,7 +201,6 @@
             }
         });
 
-        // Функция закрытия нижней панели
         function closeBottomSheet() {
             document.getElementById('bottom-sheet').classList.add('bottom-sheet-hidden');
             activeLngLat = null;
@@ -204,14 +219,13 @@
 
             document.getElementById(`inp-${role}`).value = name;
 
-            // Отрисовка маркеров точек
             if (role === 'start') {
                 if (startMarker) startMarker.remove();
-                const el = document.createElement('div'); el.className = 'text-2xl drop-shadow-md cursor-pointer'; el.innerText = '🟢';
+                const el = document.createElement('div'); el.className = 'text-2xl drop-shadow-md'; el.innerText = '🟢';
                 startMarker = new maplibregl.Marker({element: el}).setLngLat([lng, lat]).addTo(map);
             } else {
                 if (endMarker) endMarker.remove();
-                const el = document.createElement('div'); el.className = 'text-2xl drop-shadow-md cursor-pointer'; el.innerText = '🔴';
+                const el = document.createElement('div'); el.className = 'text-2xl drop-shadow-md'; el.innerText = '🔴';
                 endMarker = new maplibregl.Marker({element: el}).setLngLat([lng, lat]).addTo(map);
             }
 
@@ -222,7 +236,6 @@
         async function requestRouteOSRM() {
             if (!pointsData.start || !pointsData.end) return;
 
-            // Удаляем старые слои трассировки пути
             if (map.getLayer('route-line')) map.removeLayer('route-line');
             if (map.getSource('route-source')) map.removeSource('route-source');
 
@@ -236,16 +249,12 @@
                 const res = await fetch(url);
                 const data = await res.json();
 
-                if (!data.routes || data.routes.length === 0) {
-                    alert("Маршрут между заданными точками не найден.");
-                    return;
-                }
+                if (!data.routes || data.routes.length === 0) return;
 
                 const routeGeometry = data.routes[0].geometry;
                 const distanceMeters = data.routes[0].distance;
                 const durationSeconds = data.routes[0].duration;
 
-                // Отрисовка пути на слое карты
                 map.addSource('route-source', {
                     'type': 'geojson',
                     'data': { 'type': 'Feature', 'properties': {}, 'geometry': routeGeometry }
@@ -256,14 +265,9 @@
                     'type': 'line',
                     'source': 'route-source',
                     'layout': { 'line-join': 'round', 'line-cap': 'round' },
-                    'paint': {
-                        'line-color': '#4f46e5',
-                        'line-width': 5,
-                        'line-opacity': 0.85
-                    }
+                    'paint': { 'line-color': '#4f46e5', 'line-width': 5, 'line-opacity': 0.85 }
                 });
 
-                // Вывод реальных метаданных (Время и Дистанция) в плавающий виджет
                 const km = (distanceMeters / 1000).toFixed(1);
                 const totalMinutes = Math.round(durationSeconds / 60);
                 let timeStr = `${totalMinutes} мин`;
@@ -275,14 +279,16 @@
                 document.getElementById('meta-distance').innerText = `(${km} км)`;
                 document.getElementById('route-meta-card').classList.remove('hidden');
 
-                // Авто-подгон камеры под габариты пути
+                // ФИЧА: Прячем панель, чтобы она не мешала смотреть построенный путь
+                document.getElementById('sidebar-card').classList.add('sidebar-card-hidden');
+                document.getElementById('btn-restore-sidebar').classList.remove('hidden');
+
                 const coords = routeGeometry.coordinates;
                 const bounds = coords.reduce((acc, c) => acc.extend(c), new maplibregl.LngLatBounds(coords[0], coords[0]));
-                map.fitBounds(bounds, { padding: 60, duration: 900 });
+                map.fitBounds(bounds, { padding: 80, duration: 800 });
 
             } catch (err) {
-                console.error("OSRM Error:", err);
-                alert("Ошибка загрузки данных маршрутизации.");
+                console.error(err);
             }
         }
 
@@ -305,74 +311,57 @@
             if (map.getLayer('route-line')) map.removeLayer('route-line');
             if (map.getSource('route-source')) map.removeSource('route-source');
             
-            document.getElementById('route-meta-card').add('hidden');
+            document.getElementById('route-meta-card').classList.add('hidden');
+            
+            // Возвращаем панель на место
+            document.getElementById('sidebar-card').classList.remove('sidebar-card-hidden');
+            document.getElementById('btn-restore-sidebar').classList.add('hidden');
             closeBottomSheet();
         }
 
-        // --- УНИКАЛЬНАЯ ФИШКА: РЕАЛЬНЫЙ ПОИСК МЕСТ (POI RADAR) ЧЕРЕЗ OVERPASS API ---
+        // --- УНИКАЛЬНАЯ ФИШКА: ПОИСК ОБЪЕКТОВ ---
         async function fetchLocalPOIs(amenityType, emoji) {
             clearPOIMarkers();
             const center = map.getCenter();
-            
-            // Высчитываем небольшой радиус (примерно 1.5 км) вокруг текущего центра карты для поиска мест
-            const lat = center.lat;
-            const lng = center.lng;
-            const delta = 0.015; 
+            const lat = center.lat; const lng = center.lng; const delta = 0.015;
             const bbox = `${lat - delta},${lng - delta},${lat + delta},${lng + delta}`;
 
-            // Показываем кнопку очистки радара
             const clearBtn = document.getElementById('btn-clear-poi');
             clearBtn.innerHTML = `<span>🔄</span> <span>Ищем...</span>`;
             clearBtn.classList.remove('hidden');
 
-            // Формируем запрос к серверам OpenStreetMap
-            const query = `[out:json][timeout:15];node["amenity"="${amenityType}"](${bbox});out 12;`;
+            const query = `[out:json][timeout:15];node["amenity"="${amenityType}"](${bbox});out 15;`;
             const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             try {
                 const res = await fetch(url);
                 const data = await res.json();
-
                 clearBtn.innerHTML = `<span>✕</span> <span>Сбросить радар</span>`;
 
-                if (!data.elements || data.elements.length === 0) {
-                    alert("В этой области ничего не найдено. Сместите карту или попробуйте другое место.");
-                    return;
-                }
+                if (!data.elements || data.elements.length === 0) return alert("В этой области пусто.");
 
                 data.elements.forEach(item => {
-                    const name = item.tags.name || `${emoji} Заведение без названия`;
-                    
-                    // Создаем DOM-элемент кастомной красивой метки
+                    const name = item.tags.name || `${emoji} Заведение`;
                     const el = document.createElement('div');
-                    el.className = 'flex items-center justify-center bg-white border-2 border-indigo-500 shadow-md rounded-full w-7 h-7 text-sm cursor-pointer hover:scale-110 transition duration-200';
+                    el.className = 'flex items-center justify-center bg-white border-2 border-indigo-500 shadow-md rounded-full w-7 h-7 text-sm cursor-pointer hover:scale-110 transition duration-150';
                     el.innerText = emoji;
 
-                    // Создаем маркер и вешаем событие клика, как у взрослого приложения
-                    const marker = new maplibregl.Marker({element: el})
-                        .setLngLat([item.lon, item.lat])
-                        .addTo(map);
+                    const marker = new maplibregl.Marker({element: el}).setLngLat([item.lon, item.lat]).addTo(map);
 
                     el.addEventListener('click', (event) => {
-                        event.stopPropagation(); // блокируем клик по самой карте زیر
+                        event.stopPropagation();
                         activeLngLat = new maplibregl.LngLat(item.lon, item.lat);
-                        
                         document.getElementById('sheet-badge').innerText = "Объект из радара";
                         document.getElementById('sheet-title').innerText = name;
                         document.getElementById('sheet-subtitle').innerText = `${item.lat.toFixed(5)}, ${item.lon.toFixed(5)}`;
-                        
                         refreshFavButtonIcon();
                         document.getElementById('bottom-sheet').classList.remove('bottom-sheet-hidden');
                         map.easeTo({ center: [item.lon, item.lat], zoom: 14 });
                     });
-
                     poiMarkers.push(marker);
                 });
-
             } catch (err) {
-                console.error("Overpass Error:", err);
                 clearBtn.innerHTML = `<span>✕</span> <span>Сбросить радар</span>`;
-                alert("Ошибка обращения к поисковому серверу.");
             }
         }
 
@@ -382,36 +371,30 @@
             document.getElementById('btn-clear-poi').classList.add('hidden');
         }
 
-        // --- ОПРЕДЕЛЕНИЕ ТЕКУЩЕЙ ГЕОПОЗИЦИИ (🎯) ---
-        function locateUserDevice() {
-            if (!navigator.geolocation) return alert("Браузер не поддерживает поиск координат.");
+        // --- МОЩНОЕ ОПРЕДЕЛЕНИЕ ГЕОПОЗИЦИИ ---
+        function locateUserDevice(flyToUser = false) {
+            if (!navigator.geolocation) return;
 
             navigator.geolocation.getCurrentPosition((pos) => {
                 const { latitude: lat, longitude: lng } = pos.coords;
-                map.flyTo({ center: [lng, lat], zoom: 14, duration: 1100 });
+                
+                // Перемещаем камеру к пользователю только если это вызвано кнопкой или при старте
+                map.initialize = true;
+                map.flyTo({ center: [lng, lat], zoom: 14, duration: flyToUser ? 1000 : 0 });
 
                 if (userDeviceMarker) userDeviceMarker.remove();
                 const el = document.createElement('div');
                 el.className = 'w-4 h-4 bg-indigo-600 rounded-full border-2 border-white shadow-xl relative animate-pulse';
                 userDeviceMarker = new maplibregl.Marker({element: el}).setLngLat([lng, lat]).addTo(map);
-
-                // Заполняем поле "Откуда" текущими данными геолокации
-                pointsData.start = { lat, lng };
-                pointsData.startName = "Мое местоположение";
-                document.getElementById('inp-start').value = "Мое местоположение";
-                
-                if (startMarker) startMarker.remove();
-                startMarker = new maplibregl.Marker().setLngLat([lng, lat]).addTo(map);
-
-                requestRouteOSRM();
-            }, () => alert("Не удалось получить доступ к координатам устройства."));
+            }, () => {
+                if(flyToUser) alert("Доступ к геопозиции заблокирован устройством.");
+            });
         }
 
         // --- ИЗБРАННОЕ ---
         function handleFavoriteToggle() {
             if (!activeLngLat) return;
-            const lat = activeLngLat.lat;
-            const lng = activeLngLat.lng;
+            const lat = activeLngLat.lat; const lng = activeLngLat.lng;
             const index = savedPlaces.findIndex(f => f.lat === lat && f.lng === lng);
 
             if (index > -1) {
@@ -420,7 +403,7 @@
                 const name = document.getElementById('sheet-title').innerText;
                 savedPlaces.push({ name, lat, lng });
             }
-            localStorage.setItem('nyash_premium_favs', JSON.stringify(savedPlaces));
+            localStorage.setItem('nyash_premium_favs_v4', JSON.stringify(savedPlaces));
             refreshFavButtonIcon();
             renderFavoritesList();
         }
@@ -438,14 +421,26 @@
                 return;
             }
             container.innerHTML = savedPlaces.map((f, i) => `
-                <div onclick="map.flyTo({center:[${f.lng},${f.lat}], zoom:14})" class="bg-slate-50 hover:bg-indigo-50/60 border border-slate-100 rounded-lg p-2 transition flex items-center justify-between cursor-pointer group mb-1">
+                <div onclick="map.flyTo({center:[${f.lng},${f.lat}], zoom:14})" class="bg-slate-50 hover:bg-indigo-50/60 border border-slate-100 rounded-lg p-2 transition flex items-center justify-between cursor-pointer mb-1">
                     <span class="font-medium text-slate-700 truncate pr-2 max-w-[85%]">${f.name}</span>
-                    <button onclick="event.stopPropagation(); savedPlaces.splice(${i},1); localStorage.setItem('nyash_premium_favs', JSON.stringify(savedPlaces)); renderFavoritesList(); refreshFavButtonIcon();" class="text-slate-300 hover:text-rose-500 font-bold px-1 text-[11px]">✕</button>
+                    <button onclick="event.stopPropagation(); savedPlaces.splice(${i},1); localStorage.setItem('nyash_premium_favs_v4', JSON.stringify(savedPlaces)); renderFavoritesList(); refreshFavButtonIcon();" class="text-slate-300 hover:text-rose-500 font-bold px-1">✕</button>
                 </div>
             `).join('');
         }
 
-        // --- УПРАВЛЕНИЕ ВИДЖЕТАМИ И СЛОЯМИ ---
+        // --- УНИКАЛЬНАЯ ФИШКА: ТУГГЛ СЛОЯ ПРОБОК ---
+        function toggleTrafficLayer(btn) {
+            isTrafficActive = !isTrafficActive;
+            if (isTrafficActive) {
+                btn.classList.add('bg-indigo-600', 'text-white');
+                // Симуляция наложения трафика (в коммерческих картах это отдельный векторный source)
+                map.setPaintProperty('road_network', 'line-opacity', 0.6); 
+            } else {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+            }
+        }
+
+        // --- ТУГГЛЫ ИНТЕРФЕЙСА ---
         const sidebarCard = document.getElementById('sidebar-card');
         const btnCloseSidebar = document.getElementById('btn-close-sidebar');
         const btnRestoreSidebar = document.getElementById('btn-restore-sidebar');
@@ -458,7 +453,6 @@
         btnRestoreSidebar.addEventListener('click', () => {
             sidebarCard.classList.remove('sidebar-card-hidden');
             btnRestoreSidebar.classList.add('hidden');
-            setTimeout(() => map.resize(), 100);
         });
 
         const btnLayers = document.getElementById('btn-layers');
@@ -468,11 +462,8 @@
 
         function setMapStyle(styleKey) {
             map.setStyle(mapStyles[styleKey]);
-            document.querySelectorAll('#dropdown-layers button').forEach(b => b.className = "px-2 py-1 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50");
-            event.target.className = "px-2 py-1 text-left text-xs font-bold rounded-lg bg-indigo-50 text-indigo-600";
         }
 
-        // Инициализация стартового рендеринга сохраненных мест
         renderFavoritesList();
     </script>
 </body>
