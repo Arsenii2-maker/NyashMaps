@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NyashMaps — Современные Карты</title>
+    <title>NyashMaps — Адаптивные Карты</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- MapLibre GL JS -->
@@ -12,10 +12,13 @@
     <style>
         body { margin: 0; padding: 0; overflow: hidden; background-color: #0b0f19; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-        /* Кастомный скроллбар для боковой панели */
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        
+        /* Плавная анимация скрытия панели */
+        .sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-hidden { transform: translateX(-110%); }
     </style>
 </head>
 <body class="font-sans text-slate-900 antialiased selection:bg-indigo-500 selection:text-white">
@@ -23,83 +26,88 @@
     <!-- Карта -->
     <div id="map"></div>
 
-    <!-- ЛЕВАЯ ПАНЕЛЬ: Навигация, Поиск, Избранное -->
-    <div class="absolute top-4 left-4 bottom-4 w-80 bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl z-10 p-5 border border-white/40 flex flex-col justify-between pointer-events-auto">
-        <div class="flex flex-col flex-1 overflow-hidden">
-            <!-- Логотип -->
-            <div class="flex items-center space-x-2 mb-5">
-                <div class="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-md shadow-indigo-600/30">N</div>
-                <span class="text-base font-bold tracking-tight text-slate-900">NyashMaps</span>
-            </div>
-
-            <!-- Блок Маршрутов -->
-            <div class="bg-slate-50/60 border border-slate-100 rounded-xl p-3.5 mb-4">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Маршрут</span>
-                    <button onclick="clearRoute()" class="text-[11px] text-rose-500 font-semibold hover:underline">Очистить</button>
+    <!-- КОМПАКТНАЯ ЛЕВАЯ ПАНЕЛЬ С КНОПКОЙ СКРЫТИЯ -->
+    <div class="absolute top-4 left-4 bottom-4 z-10 flex items-start pointer-events-none">
+        <!-- Сама панель -->
+        <div id="sidebar" class="sidebar w-76 bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-4 border border-white/40 flex flex-col justify-between h-full pointer-events-auto">
+            <div class="flex flex-col flex-1 overflow-hidden">
+                <!-- Логотип -->
+                <div class="flex items-center space-x-2 mb-4">
+                    <div class="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-xs shadow-md shadow-indigo-600/30">N</div>
+                    <span class="text-sm font-bold tracking-tight text-slate-900">NyashMaps</span>
                 </div>
-                <div class="space-y-2">
-                    <div class="relative">
-                        <span class="absolute left-3 top-2.5 text-xs text-emerald-500">🟢</span>
-                        <input id="route-start" type="text" readonly placeholder="Кликните на карту и выберите 'Отсюда'" class="w-full bg-white border border-slate-200/80 rounded-lg py-1.5 pl-8 pr-3 text-xs focus:outline-none cursor-default text-ellipsis overflow-hidden">
+
+                <!-- Блок Маршрутов -->
+                <div class="bg-slate-50/80 border border-slate-100 rounded-xl p-3 mb-4">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Маршрут</span>
+                        <button onclick="clearRoute()" class="text-[10px] text-rose-500 font-semibold hover:underline">Очистить</button>
                     </div>
-                    <div class="relative">
-                        <span class="absolute left-3 top-2.5 text-xs text-rose-500">🔴</span>
-                        <input id="route-end" type="text" readonly placeholder="Кликните на карту и выберите 'Сюда'" class="w-full bg-white border border-slate-200/80 rounded-lg py-1.5 pl-8 pr-3 text-xs focus:outline-none cursor-default text-ellipsis overflow-hidden">
+                    <div class="space-y-1.5">
+                        <div class="relative">
+                            <span class="absolute left-2.5 top-2 text-[10px]">🟢</span>
+                            <input id="route-start" type="text" readonly placeholder="Старт (или нажмите 🎯)" class="w-full bg-white border border-slate-200 rounded-md py-1 pl-7 pr-2 text-xs focus:outline-none cursor-default truncate">
+                        </div>
+                        <div class="relative">
+                            <span class="absolute left-2.5 top-2 text-[10px]">🔴</span>
+                            <input id="route-end" type="text" readonly placeholder="Кликните карту -> 'Сюда'" class="w-full bg-white border border-slate-200 rounded-md py-1 pl-7 pr-2 text-xs focus:outline-none cursor-default truncate">
+                        </div>
+                    </div>
+
+                    <!-- Выбор транспорта -->
+                    <div class="grid grid-cols-3 gap-1 mt-2.5">
+                        <button onclick="setTransport('car', this)" class="transport-btn py-1 bg-white border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50 transition text-xs shadow-sm">🚗</button>
+                        <button onclick="setTransport('walk', this)" class="transport-btn py-1 bg-indigo-600 text-white border border-indigo-600 rounded-md transition text-xs shadow-sm">🏃‍♂️</button>
+                        <button onclick="setTransport('bike', this)" class="transport-btn py-1 bg-white border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50 transition text-xs shadow-sm">🚴‍♂️</button>
                     </div>
                 </div>
 
-                <!-- Выбор способов передвижения -->
-                <div class="grid grid-cols-3 gap-1.5 mt-3">
-                    <button onclick="setTransport('car', this)" class="transport-btn p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 transition text-sm flex items-center justify-center shadow-sm">🚗</button>
-                    <button onclick="setTransport('walk', this)" class="transport-btn p-2 bg-indigo-600 text-white border border-indigo-600 rounded-lg transition text-sm flex items-center justify-center shadow-sm">🏃‍♂️</button>
-                    <button onclick="setTransport('bike', this)" class="transport-btn p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 transition text-sm flex items-center justify-center shadow-sm">🚴‍♂️</button>
-                </div>
-            </div>
-
-            <!-- Раздел: Сохраненные локации -->
-            <div class="flex-1 flex flex-col overflow-hidden">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 block">Сохраненные места ⭐</span>
-                <div id="favorites-list" class="space-y-2 overflow-y-auto pr-1 flex-1 custom-scroll">
-                    <p class="text-xs text-slate-400 italic text-center py-4">Нет сохраненных мест</p>
+                <!-- Сохраненные локации -->
+                <div class="flex-1 flex flex-col overflow-hidden">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Избранное ⭐</span>
+                    <div id="favorites-list" class="space-y-1.5 overflow-y-auto pr-1 flex-1 custom-scroll">
+                        <p class="text-xs text-slate-400 italic text-center py-4">Пусто</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="text-[10px] text-slate-400 font-medium pt-3 border-t border-slate-100/60 mt-2">
-            Кликните в любое место карты для управления точкой
-        </div>
+        <!-- Кнопка Свернуть/Развернуть (прикреплена к панели) -->
+        <button id="toggle-sidebar-btn" class="w-6 h-10 bg-white/90 backdrop-blur-md rounded-r-xl shadow-md border-y border-r border-slate-200 flex items-center justify-center text-[10px] text-slate-500 hover:text-slate-800 transition pointer-events-auto ml-0 mt-4 active:scale-95">◀</button>
     </div>
 
-    <!-- УПРАВЛЕНИЕ СЛОЯМИ (Справа, как в Apple/Google Maps) -->
+    <!-- ПРАВЫЙ БЛОК КНОПОК УПРАВЛЕНИЯ -->
     <div class="absolute top-4 right-4 z-10 flex flex-col space-y-2">
-        <button id="layers-menu-btn" class="w-10 h-10 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 flex items-center justify-center text-lg hover:bg-slate-50 transition active:scale-95">🗺️</button>
-        <!-- Выпадающее из кнопки меню слоев -->
-        <div id="layers-dropdown" class="hidden absolute right-0 top-12 bg-white rounded-xl shadow-xl border border-slate-100 p-2 flex flex-col space-y-1 min-w-[120px]">
-            <button onclick="changeStyle('streets')" class="px-3 py-1.5 text-left text-xs font-bold rounded-lg bg-indigo-50 text-indigo-600">Схема</button>
-            <button onclick="changeStyle('satellite')" class="px-3 py-1.5 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50">Спутник</button>
-            <button onclick="changeStyle('dark')" class="px-3 py-1.5 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50">Ночь</button>
-        </div>
-        <!-- Кнопка 3D -->
-        <button id="btn-3d-toggle" class="w-10 h-10 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 flex items-center justify-center text-xs font-black text-slate-600 hover:bg-slate-50 transition active:scale-95">3D</button>
-    </div>
-
-    <!-- ВСПЛЫВАЮЩЕЕ СМАРТ-МЕНЮ КЛИКА (Появляется прямо у курсора) -->
-    <div id="click-menu" class="hidden absolute bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-100 p-4 z-20 w-64 transform -translate-x-1/2 -translate-y-full mt-[-10px]">
-        <div class="flex items-start justify-between mb-2">
-            <div>
-                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Выбранная точка</h4>
-                <p id="menu-coords" class="text-xs font-semibold text-slate-800 mt-0.5">00.0000, 00.0000</p>
-            </div>
-            <button onclick="toggleFavorite()" id="btn-fav" class="text-base hover:scale-110 transition">☆</button>
+        <!-- Кнопка Геолокации 🎯 -->
+        <button onclick="locateMe()" title="Определить мое местоположение" class="w-9 h-9 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 flex items-center justify-center text-base hover:bg-slate-50 transition active:scale-95">🎯</button>
+        
+        <!-- Выбор слоев -->
+        <button id="layers-menu-btn" class="w-9 h-9 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 flex items-center justify-center text-base hover:bg-slate-50 transition">🗺️</button>
+        <div id="layers-dropdown" class="hidden absolute right-0 top-20 bg-white rounded-xl shadow-xl border border-slate-100 p-1.5 flex flex-col space-y-0.5 min-w-[110px]">
+            <button onclick="changeStyle('streets')" class="px-2.5 py-1 text-left text-xs font-bold rounded-lg bg-indigo-50 text-indigo-600">Схема</button>
+            <button onclick="changeStyle('satellite')" class="px-2.5 py-1 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50">Спутник</button>
+            <button onclick="changeStyle('dark')" class="px-2.5 py-1 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50">Ночь</button>
         </div>
         
-        <div class="grid grid-cols-2 gap-2 mt-4">
-            <button onclick="setRoutePoint('start')" class="py-2 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-100 hover:bg-emerald-100 transition active:scale-95">Отсюда</button>
-            <button onclick="setRoutePoint('end')" class="py-2 bg-rose-50 text-rose-700 text-xs font-bold rounded-xl border border-rose-100 hover:bg-rose-100 transition active:scale-95">Сюда</button>
+        <!-- 3D Режим -->
+        <button id="btn-3d-toggle" class="w-9 h-9 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 flex items-center justify-center text-[11px] font-black text-slate-600 hover:bg-slate-50 transition">3D</button>
+    </div>
+
+    <!-- СМАРТ-МЕНЮ КЛИКА КУРСОРA -->
+    <div id="click-menu" class="hidden absolute bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-100 p-3 z-20 w-56 transform -translate-x-1/2 -translate-y-full mt-[-8px]">
+        <div class="flex items-start justify-between">
+            <div>
+                <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Координаты</h4>
+                <p id="menu-coords" class="text-xs font-semibold text-slate-800">00.0000, 00.0000</p>
+            </div>
+            <button onclick="toggleFavorite()" id="btn-fav" class="text-sm hover:scale-110 transition">☆</button>
         </div>
-        <!-- Стрелочка внизу карточки -->
-        <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-white/95"></div>
+        
+        <div class="grid grid-cols-2 gap-1.5 mt-3">
+            <button onclick="setRoutePoint('start')" class="py-1.5 bg-emerald-50 text-emerald-700 text-[11px] font-bold rounded-lg border border-emerald-100 hover:bg-emerald-100 transition">Отсюда</button>
+            <button onclick="setRoutePoint('end')" class="py-1.5 bg-rose-50 text-rose-700 text-[11px] font-bold rounded-lg border border-rose-100 hover:bg-rose-100 transition">Сюда</button>
+        </div>
+        <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0 border-x-6 border-x-transparent border-t-6 border-t-white/95"></div>
     </div>
 
     <script>
@@ -125,6 +133,57 @@
         let routeData = { start: null, end: null };
         let favorites = JSON.parse(localStorage.getItem('nyash_favs')) || [];
         let mapMarkers = [];
+        let userLocationMarker = null;
+
+        // --- ФУНКЦИЯ ОПРЕДЕЛЕНИЯ ГЕОПОЗИЦИИ (🎯) ---
+        function locateMe() {
+            if (!navigator.geolocation) {
+                alert("Ваш браузер не поддерживает геолокацию");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    // Плавный подлет к пользователю
+                    map.flyTo({ center: [lng, lat], zoom: 15, duration: 1200 });
+
+                    // Ставим или обновляем синий маркер локации пользователя
+                    if (userLocationMarker) userLocationMarker.remove();
+                    
+                    const el = document.createElement('div');
+                    el.className = 'w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md shadow-blue-500/50 relative animate-pulse';
+                    userLocationMarker = new maplibregl.Marker(el).setLngLat([lng, lat]).addTo(map);
+
+                    // Автоматически ставим точку в поле "Отсюда"
+                    routeData.start = { lat, lng };
+                    document.getElementById('route-start').value = `Моя позиция (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                    
+                    // Если панель была закрыта, откроем её, чтобы пользователь видел изменения
+                    const sidebar = document.getElementById('sidebar');
+                    if(sidebar.classList.contains('sidebar-hidden')) {
+                        document.getElementById('toggle-sidebar-btn').click();
+                    }
+                },
+                (error) => {
+                    alert("Не удалось определить положение. Убедитесь, что дали разрешение на доступ к геопозиции.");
+                },
+                { enableHighAccuracy: true }
+            );
+        }
+
+        // --- ЛОГИКА СКРЫТИЯ ПАНЕЛИ ---
+        const sidebar = document.getElementById('sidebar');
+        const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+
+        toggleSidebarBtn.addEventListener('click', () => {
+            const isHidden = sidebar.classList.toggle('sidebar-hidden');
+            toggleSidebarBtn.innerText = isHidden ? '▶' : '◀';
+            // Небольшой хак: переинициализируем размер карты, чтобы она подстроилась под новые границы
+            setTimeout(() => map.resize(), 300);
+        });
 
         // Контроль 3D зданий
         let is3DActive = false;
@@ -163,26 +222,22 @@
 
         map.on('style.load', () => { if (is3DActive) enable3DBuildings(); });
 
-        // Обработка клика по карте
+        // Клик по карте (Вызов облачка)
         map.on('click', (e) => {
             currentLatLng = e.lngLat;
             const menu = document.getElementById('click-menu');
-            
-            // Получаем координаты клика в пикселях на экране для позиционирования меню
             const point = map.project(currentLatLng);
+            
             menu.style.left = `${point.x}px`;
             menu.style.top = `${point.y}px`;
-            
             document.getElementById('menu-coords').innerText = `${currentLatLng.lat.toFixed(5)}, ${currentLatLng.lng.toFixed(5)}`;
             
-            // Проверяем, есть ли точка в избранном
             const isFav = favorites.some(f => f.lat === currentLatLng.lat && f.lng === currentLatLng.lng);
             document.getElementById('btn-fav').innerText = isFav ? '⭐' : '☆';
 
             menu.classList.remove('hidden');
         });
 
-        // Скрывать меню при перетаскивании карты
         map.on('move', () => {
             const menu = document.getElementById('click-menu');
             if (currentLatLng && !menu.classList.contains('hidden')) {
@@ -192,45 +247,36 @@
             }
         });
 
-        // Закрыть меню по клику на другие элементы
         map.on('mousedown', () => {
-            // Задержка, чтобы успели сработать клики кнопок самого меню
             setTimeout(() => document.getElementById('click-menu').classList.add('hidden'), 200);
         });
 
-        // --- МАРШРУТЫ (ОТКУДА / СЮДА) ---
+        // Маршрутизация
         function setRoutePoint(type) {
             if (!currentLatLng) return;
             routeData[type] = { lat: currentLatLng.lat, lng: currentLatLng.lng };
-            
-            const displayValue = `${currentLatLng.lat.toFixed(4)}, ${currentLatLng.lng.toFixed(4)}`;
-            document.getElementById(`route-${type}`).value = displayValue;
-
-            // Обновляем визуальные маркеры маршрута на карте
+            document.getElementById(`route-${type}`).value = `${currentLatLng.lat.toFixed(4)}, ${currentLatLng.lng.toFixed(4)}`;
             renderRouteMarkers();
             document.getElementById('click-menu').classList.add('hidden');
         }
 
         function renderRouteMarkers() {
-            // Удаляем старые временные маркеры маршрута
             mapMarkers.forEach(m => m.remove());
             mapMarkers = [];
 
             if (routeData.start) {
-                const el = document.createElement('div');
-                el.innerHTML = '🟢'; el.style.fontSize = '20px';
+                const el = document.createElement('div'); el.innerHTML = '🟢'; el.style.fontSize = '16px';
                 const m = new maplibregl.Marker(el).setLngLat([routeData.start.lng, routeData.start.lat]).addTo(map);
                 mapMarkers.push(m);
             }
             if (routeData.end) {
-                const el = document.createElement('div');
-                el.innerHTML = '🔴'; el.style.fontSize = '20px';
+                const el = document.createElement('div'); el.innerHTML = '🔴'; el.style.fontSize = '16px';
                 const m = new maplibregl.Marker(el).setLngLat([routeData.end.lng, routeData.end.lat]).addTo(map);
                 mapMarkers.push(m);
             }
 
             if (routeData.start && routeData.end) {
-                alert(`🧭 NyashMaps строит маршрут!\nРежим движения: ${activeTransport === 'walk' ? 'Пешком 🏃‍♂️' : activeTransport === 'car' ? 'На авто 🚗' : 'На велосипеде 🚴‍♂️'}`);
+                alert(`🧭 Расчет маршрута в режиме: ${activeTransport === 'walk' ? 'Пешком' : activeTransport === 'car' ? 'Авто' : 'Велосипед'}`);
             }
         }
 
@@ -245,14 +291,14 @@
         let activeTransport = 'walk';
         function setTransport(type, btn) {
             document.querySelectorAll('.transport-btn').forEach(b => {
-                b.className = "transport-btn p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 transition text-sm flex items-center justify-center shadow-sm";
+                b.className = "transport-btn py-1 bg-white border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50 transition text-xs shadow-sm";
             });
-            btn.className = "transport-btn p-2 bg-indigo-600 text-white border border-indigo-600 rounded-lg transition text-sm flex items-center justify-center shadow-sm";
+            btn.className = "transport-btn py-1 bg-indigo-600 text-white border border-indigo-600 rounded-md transition text-xs shadow-sm";
             activeTransport = type;
             if(routeData.start && routeData.end) renderRouteMarkers();
         }
 
-        // --- ИЗБРАННОЕ / СОХРАНЕНИЕ ---
+        // Избранное
         function toggleFavorite() {
             if (!currentLatLng) return;
             const index = favorites.findIndex(f => f.lat === currentLatLng.lat && f.lng === currentLatLng.lng);
@@ -261,12 +307,11 @@
                 favorites.splice(index, 1);
                 document.getElementById('btn-fav').innerText = '☆';
             } else {
-                const name = prompt("Введите название для этой локации:", `Точка ${favorites.length + 1}`);
+                const name = prompt("Название места:", `Точка ${favorites.length + 1}`);
                 if (!name) return;
                 favorites.push({ name, lat: currentLatLng.lat, lng: currentLatLng.lng });
                 document.getElementById('btn-fav').innerText = '⭐';
             }
-            
             localStorage.setItem('nyash_favs', JSON.stringify(favorites));
             renderFavorites();
         }
@@ -274,53 +319,32 @@
         function renderFavorites() {
             const container = document.getElementById('favorites-list');
             if (favorites.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Нет сохраненных мест</p>`;
+                container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Пусто</p>`;
                 return;
             }
             container.innerHTML = favorites.map((f, i) => `
-                <div onclick="flyToFav(${f.lng}, ${f.lat})" class="bg-slate-50 hover:bg-indigo-50 border border-slate-100 hover:border-indigo-100 rounded-xl p-2.5 transition flex items-center justify-between cursor-pointer group">
+                <div onclick="map.flyTo({center:[${f.lng},${f.lat}],zoom:15})" class="bg-slate-50 hover:bg-indigo-50 border border-slate-100 rounded-lg p-2 transition flex items-center justify-between cursor-pointer">
                     <div class="overflow-hidden pr-2">
                         <h5 class="text-xs font-bold text-slate-800 truncate">${f.name}</h5>
-                        <p class="text-[10px] text-slate-400 truncate">${f.lat.toFixed(4)}, ${f.lng.toFixed(4)}</p>
                     </div>
-                    <button onclick="deleteFav(event, ${i})" class="text-slate-300 hover:text-rose-500 text-xs transition">✕</button>
+                    <button onclick="event.stopPropagation(); favorites.splice(${i},1); localStorage.setItem('nyash_favs', JSON.stringify(favorites)); renderFavorites();" class="text-slate-300 hover:text-rose-500 text-xs px-1">✕</button>
                 </div>
             `).join('');
         }
 
-        function flyToFav(lng, lat) {
-            map.flyTo({ center: [lng, lat], zoom: 15, duration: 1000 });
-        }
-
-        function deleteFav(e, index) {
-            e.stopPropagation(); // Предотвращаем клик по карточке (полет)
-            favorites.splice(index, 1);
-            localStorage.setItem('nyash_favs', JSON.stringify(favorites));
-            renderFavorites();
-        }
-
-        // --- УПРАВЛЕНИЕ СЛОЯМИ ---
+        // Переключение стилей
         const layersBtn = document.getElementById('layers-menu-btn');
         const layersDropdown = document.getElementById('layers-dropdown');
-        
-        layersBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            layersDropdown.classList.toggle('hidden');
-        });
-
+        layersBtn.addEventListener('click', (e) => { e.stopPropagation(); layersDropdown.classList.toggle('hidden'); });
         document.addEventListener('click', () => layersDropdown.classList.add('hidden'));
 
         function changeStyle(styleKey) {
             map.setStyle(styles[styleKey]);
-            // Сброс и подсветка активной кнопки меню слоев
             const dropdownBtns = layersDropdown.querySelectorAll('button');
-            dropdownBtns.forEach(b => {
-                b.className = "px-3 py-1.5 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50";
-            });
-            event.target.className = "px-3 py-1.5 text-left text-xs font-bold rounded-lg bg-indigo-50 text-indigo-600";
+            dropdownBtns.forEach(b => b.className = "px-2.5 py-1 text-left text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50");
+            event.target.className = "px-2.5 py-1 text-left text-xs font-bold rounded-lg bg-indigo-50 text-indigo-600";
         }
 
-        // Старт
         renderFavorites();
     </script>
 </body>
