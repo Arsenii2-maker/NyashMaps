@@ -2,16 +2,31 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NyashMaps Next-Gen v4.0</title>
+    <!-- Блокируем зум самого сайта на мобилках -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NyashMaps Next-Gen v4.2</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@^4.0.0/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@^4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background-color: #0b0f19; }
+        /* Запрещаем прокрутку и жесты масштабирования для body */
+        body { 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            background-color: #0b0f19;
+            touch-action: pan-x pan-y;
+        }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        
+        /* Панели интерфейса игнорируют системный мобильный зум и скролл */
+        .ui-panel {
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
         
         .floating-widget { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .bottom-sheet-hidden { transform: translate(-50%, 150%); opacity: 0; pointer-events: none; }
@@ -27,8 +42,8 @@
     <!-- КАРТА НА ВЕСЬ ЭКРАН -->
     <div id="map"></div>
 
-    <!-- ТОП-ЦЕНТР: КАТЕГОРИИ ПОИСКА -->
-    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2 max-w-[85%] overflow-x-auto no-scrollbar py-1">
+    <!-- ТОП-ЦЕНТР: КАТЕГОРИИ ПОИСКА (РАДАР) -->
+    <div class="ui-panel absolute top-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2 max-w-[85%] overflow-x-auto no-scrollbar py-1">
         <button onclick="fetchLocalPOIs('cafe', '☕')" class="flex items-center space-x-1 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-md rounded-full text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition active:scale-95 whitespace-nowrap">
             <span>☕</span> <span>Кафе</span>
         </button>
@@ -39,12 +54,12 @@
             <span>🌳</span> <span>Парки</span>
         </button>
         <button onclick="clearPOIMarkers()" id="btn-clear-poi" class="hidden flex items-center space-x-1 px-3 py-1.5 bg-rose-500 text-white shadow-md rounded-full text-xs font-bold hover:bg-rose-600 transition active:scale-95 whitespace-nowrap">
-            <span>✕</span> <span>Сбросить радар</span>
+            <span>✕</span> <span>Сбросить поиск</span>
         </button>
     </div>
 
-    <!-- СЛЕВА: ПАРИЯЩАЯ КАРТОЧКА НАВИГАЦИИ -->
-    <div class="absolute top-4 left-4 z-20 flex items-start space-x-2">
+    <!-- СЛЕВА: БОКОВАЯ ПАНЕЛЬ -->
+    <div class="ui-panel absolute top-4 left-4 z-20 flex items-start space-x-2">
         <button id="btn-restore-sidebar" class="hidden w-10 h-10 bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl rounded-xl flex items-center justify-center text-slate-600 hover:text-slate-900 transition active:scale-95">🗺️</button>
 
         <div id="sidebar-card" class="floating-widget w-80 bg-white/95 backdrop-blur-lg rounded-2xl shadow-xl border border-slate-200/80 p-4 flex flex-col max-h-[calc(100vh-40px)]">
@@ -63,11 +78,11 @@
             <div class="space-y-1.5 bg-slate-50 border border-slate-100 p-2.5 rounded-xl mb-3">
                 <div class="flex items-center bg-white border border-slate-200 rounded-lg px-2 py-1 space-x-2 shadow-sm">
                     <span class="text-xs">🟢</span>
-                    <input id="inp-start" type="text" readonly placeholder="Откуда (кликните на карту)" class="w-full text-xs bg-transparent focus:outline-none text-slate-700 truncate cursor-default">
+                    <input id="inp-start" type="text" readonly placeholder="Откуда (клик на карту)" class="w-full text-xs bg-transparent focus:outline-none text-slate-700 truncate cursor-default">
                 </div>
                 <div class="flex items-center bg-white border border-slate-200 rounded-lg px-2 py-1 space-x-2 shadow-sm">
                     <span class="text-xs">🔴</span>
-                    <input id="inp-end" type="text" readonly placeholder="Сюда (кликните на карту)" class="w-full text-xs bg-transparent focus:outline-none text-slate-700 truncate cursor-default">
+                    <input id="inp-end" type="text" readonly placeholder="Сюда (клик на карту)" class="w-full text-xs bg-transparent focus:outline-none text-slate-700 truncate cursor-default">
                 </div>
                 
                 <div class="grid grid-cols-3 gap-1 pt-1.5">
@@ -77,7 +92,7 @@
                 </div>
             </div>
 
-            <!-- Избранные места -->
+            <!-- Избранное -->
             <div class="flex-1 flex flex-col overflow-hidden">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Избранное ⭐</span>
                 <div id="favorites-box" class="space-y-1 overflow-y-auto pr-0.5 flex-1 custom-scroll text-xs"></div>
@@ -85,8 +100,8 @@
         </div>
     </div>
 
-    <!-- СВЕРХУ СПРАВА: ИНФО-КАРТОЧКА МАРШРУТА -->
-    <div id="route-meta-card" class="hidden absolute top-4 right-16 z-20 bg-indigo-600 text-white px-4 py-2 rounded-xl shadow-xl border border-indigo-500/30 flex items-center space-x-3">
+    <!-- СВЕРХУ СПРАВА: ПАНЕЛЬ МАРШРУТА -->
+    <div id="route-meta-card" class="ui-panel hidden absolute top-4 right-16 z-20 bg-indigo-600 text-white px-4 py-2 rounded-xl shadow-xl border border-indigo-500/30 flex items-center space-x-3">
         <div class="flex flex-col">
             <span class="text-[8px] font-bold uppercase tracking-wider text-indigo-200">Маршрут построен</span>
             <div class="flex items-baseline space-x-1">
@@ -97,18 +112,17 @@
         <button onclick="clearAllRouteData()" class="bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg p-1 text-xs transition">✕</button>
     </div>
 
-    <!-- СПРАВА: ПРОФЕССИОНАЛЬНЫЙ БЛОК УПРАВЛЕНИЯ КАМЕРОЙ И СЛОЯМИ -->
-    <div class="absolute top-4 right-4 z-20 flex flex-col space-y-2">
-        <!-- Геопозиция -->
+    <!-- СПРАВА: КНОПКИ КАМЕРЫ И СЛОЕВ -->
+    <div class="ui-panel absolute top-4 right-4 z-20 flex flex-col space-y-2">
         <button onclick="locateUserDevice(true)" title="Где я?" class="w-9 h-9 bg-white shadow-lg border border-slate-200 rounded-xl flex items-center justify-center text-base hover:bg-slate-50 transition active:scale-95">🎯</button>
         
-        <!-- Кастомный блок Зумирования (Решает проблему скролла) -->
+        <!-- Кастомные кнопки управления зумом -->
         <div class="flex flex-col bg-white shadow-lg border border-slate-200 rounded-xl overflow-hidden">
-            <button onclick="map.zoomIn({duration:200})" title="Приблизить" class="w-9 h-9 font-bold text-lg text-slate-600 hover:bg-slate-50 border-b border-slate-100 transition">+</button>
-            <button onclick="map.zoomOut({duration:200})" title="Отдалить" class="w-9 h-9 font-bold text-lg text-slate-600 hover:bg-slate-50 transition">−</button>
+            <button onclick="smoothZoom(true)" title="Приблизить" class="w-9 h-9 font-bold text-lg text-slate-600 hover:bg-slate-50 border-b border-slate-100 transition active:bg-slate-100">+</button>
+            <button onclick="smoothZoom(false)" title="Отдалить" class="w-9 h-9 font-bold text-lg text-slate-600 hover:bg-slate-50 transition active:bg-slate-100">−</button>
         </div>
 
-        <!-- Слои и Пробки -->
+        <!-- Переключатели стилей и пробок -->
         <div class="flex flex-col space-y-1 relative">
             <button id="btn-layers" class="w-9 h-9 bg-white shadow-lg border border-slate-200 rounded-xl flex items-center justify-center text-base hover:bg-slate-50 transition">🗺️</button>
             <button onclick="toggleTrafficLayer(this)" id="btn-traffic" title="Показать пробки" class="w-9 h-9 bg-white shadow-lg border border-slate-200 rounded-xl flex items-center justify-center text-base hover:bg-slate-50 transition">🚦</button>
@@ -122,7 +136,7 @@
     </div>
 
     <!-- СНИЗУ: ИНФО-ПАНЕЛЬ ОБЪЕКТА -->
-    <div id="bottom-sheet" class="floating-widget bottom-sheet-hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-2xl rounded-2xl p-4 z-30 w-[90%] sm:w-[420px] flex flex-col space-y-3">
+    <div id="bottom-sheet" class="ui-panel floating-widget bottom-sheet-hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-2xl rounded-2xl p-4 z-30 w-[90%] sm:w-[420px] flex flex-col space-y-3">
         <div class="flex items-start justify-between">
             <div class="overflow-hidden pr-4 flex-1">
                 <span id="sheet-badge" class="text-[9px] font-bold uppercase tracking-wider text-indigo-600 block mb-0.5">Выбранная локация</span>
@@ -141,26 +155,27 @@
     </div>
 
     <script>
+        // ВСТАВЬ СВОЙ КЛЮЧ СЮДА
         const MAPTILER_KEY = 'p3hK1aeFahnKHvtUUKfN';
 
         const mapStyles = {
             streets: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
             satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${MAPTILER_KEY}`,
-            dark: `https://api.maptiler.com/maps/darkmatter/style.json?key=${MAPTILER_KEY}`
+            dark: `https://api.maptiler.com/maps/darkmatter/style.json?key=${MAPTILER_KEY}`,
+            traffic: `https://api.maptiler.com/maps/traffic-day/style.json?key=${MAPTILER_KEY}`
         };
 
-        // НАСТРОЙКА КАРТЫ С УЛУЧШЕННОЙ ПЛАВНОСТЬЮ КАМЕРЫ
+        // Инициализация карты с повышенной плавностью
         const map = new maplibregl.Map({
             container: 'map',
             style: mapStyles.streets,
-            center: [37.6173, 55.7558], // Дефолт (сразу перепишется геолокацией)
+            center: [37.6173, 55.7558], 
             zoom: 12,
-            zoomSnap: 0.1,         // Более плавный шаг приближения
-            wheelZoomRate: 1/150,  // Комфортная скорость зума колесиком
+            zoomSnap: 0.1,
+            wheelZoomRate: 1/120, 
             antialias: true
         });
 
-        // Добавляем профессиональную линейку масштаба (как в Google)
         map.addControl(new maplibregl.ScaleControl({maxWidth: 80, unit: 'metric'}), 'bottom-left');
 
         let activeLngLat = null;
@@ -173,15 +188,42 @@
         let userDeviceMarker = null;
         let poiMarkers = [];
         let isTrafficActive = false;
+        let currentBaseStyle = 'streets';
 
-        // --- ИНИЦИАЛИЗАЦИЯ: СТАРТ СРАЗУ НА ТВОЕМ МЕСТЕ ---
+        // ЖЕСТКИЙ ЗАПРЕТ НА DOUBLE-TAP ЗУМ ВСЕГО ИНТЕРФЕЙСА САЙТА
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault(); // Блокирует pinch-to-zoom самого HTML документа
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault(); // Запрещает двойной тап по кнопкам интерфейса
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+
+        // Авто-определение позиции при старте
         map.on('load', () => {
-            locateUserDevice(false); // Запускаем скрытое определение позиции без лишних алертов
+            locateUserDevice(false);
         });
 
-        // --- КЛИК ПО КАРТЕ ---
+        // Кнопки плавного зума (без рывков)
+        function smoothZoom(zoomIn) {
+            const currentZoom = map.getZoom();
+            map.flyTo({
+                zoom: zoomIn ? currentZoom + 1 : currentZoom - 1,
+                duration: 300,
+                essential: true
+            });
+        }
+
+        // КЛИК ПО КАРТЕ
         map.on('click', async (e) => {
-            if (e.originalEvent.target.closest('.maplibregl-marker')) return;
+            if (e.originalEvent.target.closest('.maplibregl-marker') || e.originalEvent.target.closest('.ui-panel')) return;
             activeLngLat = e.lngLat;
             
             document.getElementById('sheet-badge').innerText = "Выбранная точка";
@@ -206,17 +248,14 @@
             activeLngLat = null;
         }
 
-        // --- РАБОТА С МАРШРУТАМИ ---
+        // РАБОТА С МАРШРУТАМИ
         function assignRouteEndpoint(role) {
             if (!activeLngLat) return;
-
-            const lat = activeLngLat.lat;
-            const lng = activeLngLat.lng;
+            const lat = activeLngLat.lat; const lng = activeLngLat.lng;
             const name = document.getElementById('sheet-title').innerText;
 
             pointsData[role] = { lat, lng };
             pointsData[role + 'Name'] = name;
-
             document.getElementById(`inp-${role}`).value = name;
 
             if (role === 'start') {
@@ -239,63 +278,40 @@
             if (map.getLayer('route-line')) map.removeLayer('route-line');
             if (map.getSource('route-source')) map.removeSource('route-source');
 
-            let profile = 'foot';
-            if (activeTransport === 'driving') profile = 'car';
-            if (activeTransport === 'bike') profile = 'bicycle';
-
+            let profile = activeTransport === 'driving' ? 'car' : (activeTransport === 'bike' ? 'bicycle' : 'foot');
             const url = `https://router.project-osrm.org/route/v1/${profile}/${pointsData.start.lng},${pointsData.start.lat};${pointsData.end.lng},${pointsData.end.lat}?overview=full&geometries=geojson`;
 
             try {
                 const res = await fetch(url);
                 const data = await res.json();
-
                 if (!data.routes || data.routes.length === 0) return;
 
                 const routeGeometry = data.routes[0].geometry;
-                const distanceMeters = data.routes[0].distance;
-                const durationSeconds = data.routes[0].duration;
-
-                map.addSource('route-source', {
-                    'type': 'geojson',
-                    'data': { 'type': 'Feature', 'properties': {}, 'geometry': routeGeometry }
-                });
-
+                map.addSource('route-source', { 'type': 'geojson', 'data': { 'type': 'Feature', 'geometry': routeGeometry } });
                 map.addLayer({
-                    'id': 'route-line',
-                    'type': 'line',
-                    'source': 'route-source',
+                    'id': 'route-line', 'type': 'line', 'source': 'route-source',
                     'layout': { 'line-join': 'round', 'line-cap': 'round' },
                     'paint': { 'line-color': '#4f46e5', 'line-width': 5, 'line-opacity': 0.85 }
                 });
 
-                const km = (distanceMeters / 1000).toFixed(1);
-                const totalMinutes = Math.round(durationSeconds / 60);
-                let timeStr = `${totalMinutes} мин`;
-                if (totalMinutes > 60) {
-                    timeStr = `${Math.floor(totalMinutes / 60)} ч ${totalMinutes % 60} мин`;
-                }
-
-                document.getElementById('meta-duration').innerText = timeStr;
+                const km = (data.routes[0].distance / 1000).toFixed(1);
+                const mins = Math.round(data.routes[0].duration / 60);
+                document.getElementById('meta-duration').innerText = mins > 60 ? `${Math.floor(mins/60)} ч ${mins%60} мин` : `${mins} мин`;
                 document.getElementById('meta-distance').innerText = `(${km} км)`;
                 document.getElementById('route-meta-card').classList.remove('hidden');
 
-                // ФИЧА: Прячем панель, чтобы она не мешала смотреть построенный путь
+                // Автоматически убираем панель
                 document.getElementById('sidebar-card').classList.add('sidebar-card-hidden');
                 document.getElementById('btn-restore-sidebar').classList.remove('hidden');
 
                 const coords = routeGeometry.coordinates;
                 const bounds = coords.reduce((acc, c) => acc.extend(c), new maplibregl.LngLatBounds(coords[0], coords[0]));
                 map.fitBounds(bounds, { padding: 80, duration: 800 });
-
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         function changeTransportMode(mode, btn) {
-            document.querySelectorAll('.mode-btn').forEach(b => {
-                b.className = "mode-btn py-1 bg-white border border-slate-200 rounded-md text-slate-600 text-[11px] font-medium transition hover:bg-slate-50";
-            });
+            document.querySelectorAll('.mode-btn').forEach(b => b.className = "mode-btn py-1 bg-white border border-slate-200 rounded-md text-slate-600 text-[11px] font-medium transition");
             btn.className = "mode-btn py-1 bg-indigo-600 text-white border border-indigo-600 rounded-md text-[11px] font-medium transition";
             activeTransport = mode;
             requestRouteOSRM();
@@ -303,47 +319,46 @@
 
         function clearAllRouteData() {
             pointsData = { start: null, end: null, startName: '', endName: '' };
-            document.getElementById('inp-start').value = '';
-            document.getElementById('inp-end').value = '';
-            
+            document.getElementById('inp-start').value = ''; document.getElementById('inp-end').value = '';
             if (startMarker) { startMarker.remove(); startMarker = null; }
             if (endMarker) { endMarker.remove(); endMarker = null; }
             if (map.getLayer('route-line')) map.removeLayer('route-line');
             if (map.getSource('route-source')) map.removeSource('route-source');
-            
             document.getElementById('route-meta-card').classList.add('hidden');
-            
-            // Возвращаем панель на место
             document.getElementById('sidebar-card').classList.remove('sidebar-card-hidden');
             document.getElementById('btn-restore-sidebar').classList.add('hidden');
             closeBottomSheet();
         }
 
-        // --- УНИКАЛЬНАЯ ФИШКА: ПОИСК ОБЪЕКТОВ ---
+        // ИСПРАВЛЕННЫЙ И РАБОЧИЙ РАДАР (ПОИСК КАТЕГОРИЙ)
         async function fetchLocalPOIs(amenityType, emoji) {
             clearPOIMarkers();
             const center = map.getCenter();
-            const lat = center.lat; const lng = center.lng; const delta = 0.015;
-            const bbox = `${lat - delta},${lng - delta},${lat + delta},${lng + delta}`;
+            const delta = 0.02; 
+            const bbox = `${center.lat - delta},${center.lng - delta},${center.lat + delta},${center.lng + delta}`;
 
             const clearBtn = document.getElementById('btn-clear-poi');
             clearBtn.innerHTML = `<span>🔄</span> <span>Ищем...</span>`;
             clearBtn.classList.remove('hidden');
 
-            const query = `[out:json][timeout:15];node["amenity"="${amenityType}"](${bbox});out 15;`;
+            const query = `[out:json][timeout:25];node["amenity"="${amenityType}"](${bbox});out 30;`;
             const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             try {
                 const res = await fetch(url);
                 const data = await res.json();
-                clearBtn.innerHTML = `<span>✕</span> <span>Сбросить радар</span>`;
+                clearBtn.innerHTML = `<span>✕</span> <span>Сбросить поиск</span>`;
 
-                if (!data.elements || data.elements.length === 0) return alert("В этой области пусто.");
+                if (!data.elements || data.elements.length === 0) {
+                    alert("Рядом ничего не найдено. Попробуй сместить карту.");
+                    clearBtn.classList.add('hidden');
+                    return;
+                }
 
                 data.elements.forEach(item => {
-                    const name = item.tags.name || `${emoji} Заведение`;
+                    const name = item.tags.name || `Заведение (${emoji})`;
                     const el = document.createElement('div');
-                    el.className = 'flex items-center justify-center bg-white border-2 border-indigo-500 shadow-md rounded-full w-7 h-7 text-sm cursor-pointer hover:scale-110 transition duration-150';
+                    el.className = 'flex items-center justify-center bg-white border-2 border-indigo-600 shadow-xl rounded-full w-8 h-8 text-base cursor-pointer hover:scale-110 transition duration-150 ui-panel';
                     el.innerText = emoji;
 
                     const marker = new maplibregl.Marker({element: el}).setLngLat([item.lon, item.lat]).addTo(map);
@@ -351,17 +366,18 @@
                     el.addEventListener('click', (event) => {
                         event.stopPropagation();
                         activeLngLat = new maplibregl.LngLat(item.lon, item.lat);
-                        document.getElementById('sheet-badge').innerText = "Объект из радара";
+                        document.getElementById('sheet-badge').innerText = "Найденный объект";
                         document.getElementById('sheet-title').innerText = name;
                         document.getElementById('sheet-subtitle').innerText = `${item.lat.toFixed(5)}, ${item.lon.toFixed(5)}`;
                         refreshFavButtonIcon();
                         document.getElementById('bottom-sheet').classList.remove('bottom-sheet-hidden');
-                        map.easeTo({ center: [item.lon, item.lat], zoom: 14 });
+                        map.easeTo({ center: [item.lon, item.lat], zoom: 15, duration: 400 });
                     });
                     poiMarkers.push(marker);
                 });
             } catch (err) {
-                clearBtn.innerHTML = `<span>✕</span> <span>Сбросить радар</span>`;
+                console.error(err);
+                clearBtn.innerHTML = `<span>✕</span> <span>Сбросить поиск</span>`;
             }
         }
 
@@ -371,55 +387,60 @@
             document.getElementById('btn-clear-poi').classList.add('hidden');
         }
 
-        // --- МОЩНОЕ ОПРЕДЕЛЕНИЕ ГЕОПОЗИЦИИ ---
+        // ИСПРАВЛЕННАЯ КНОПКА ПРОБОК (ЧЕСТНАЯ СМЕНА СТИЛЯ НА TRAFFIC)
+        function toggleTrafficLayer(btn) {
+            isTrafficActive = !isTrafficActive;
+            if (isTrafficActive) {
+                btn.classList.add('bg-rose-500', 'text-white');
+                map.setStyle(mapStyles.traffic);
+            } else {
+                btn.classList.remove('bg-rose-500', 'text-white');
+                map.setStyle(mapStyles[currentBaseStyle]);
+            }
+        }
+
+        function setMapStyle(styleKey) {
+            currentBaseStyle = styleKey;
+            if (!isTrafficActive) {
+                map.setStyle(mapStyles[styleKey]);
+            }
+        }
+
+        // ОПРЕДЕЛЕНИЕ ГЕОПОЗИЦИИ ПОЛЬЗОВАТЕЛЯ
         function locateUserDevice(flyToUser = false) {
             if (!navigator.geolocation) return;
-
             navigator.geolocation.getCurrentPosition((pos) => {
                 const { latitude: lat, longitude: lng } = pos.coords;
-                
-                // Перемещаем камеру к пользователю только если это вызвано кнопкой или при старте
-                map.initialize = true;
                 map.flyTo({ center: [lng, lat], zoom: 14, duration: flyToUser ? 1000 : 0 });
 
                 if (userDeviceMarker) userDeviceMarker.remove();
                 const el = document.createElement('div');
-                el.className = 'w-4 h-4 bg-indigo-600 rounded-full border-2 border-white shadow-xl relative animate-pulse';
+                el.className = 'w-4 h-4 bg-indigo-600 rounded-full border-2 border-white shadow-2xl relative animate-pulse';
                 userDeviceMarker = new maplibregl.Marker({element: el}).setLngLat([lng, lat]).addTo(map);
             }, () => {
-                if(flyToUser) alert("Доступ к геопозиции заблокирован устройством.");
+                if (flyToUser) alert("Включи геолокацию в настройках браузера.");
             });
         }
 
-        // --- ИЗБРАННОЕ ---
+        // ИЗБРАННОЕ
         function handleFavoriteToggle() {
             if (!activeLngLat) return;
             const lat = activeLngLat.lat; const lng = activeLngLat.lng;
             const index = savedPlaces.findIndex(f => f.lat === lat && f.lng === lng);
-
-            if (index > -1) {
-                savedPlaces.splice(index, 1);
-            } else {
-                const name = document.getElementById('sheet-title').innerText;
-                savedPlaces.push({ name, lat, lng });
-            }
+            if (index > -1) { savedPlaces.splice(index, 1); } 
+            else { savedPlaces.push({ name: document.getElementById('sheet-title').innerText, lat, lng }); }
             localStorage.setItem('nyash_premium_favs_v4', JSON.stringify(savedPlaces));
-            refreshFavButtonIcon();
-            renderFavoritesList();
+            refreshFavButtonIcon(); renderFavoritesList();
         }
 
         function refreshFavButtonIcon() {
             if (!activeLngLat) return;
-            const isFav = savedPlaces.some(f => f.lat === activeLngLat.lat && f.lng === activeLngLat.lng);
-            document.getElementById('sheet-fav-btn').innerText = isFav ? '⭐' : '☆';
+            document.getElementById('sheet-fav-btn').innerText = savedPlaces.some(f => f.lat === activeLngLat.lat && f.lng === activeLngLat.lng) ? '⭐' : '☆';
         }
 
         function renderFavoritesList() {
             const container = document.getElementById('favorites-box');
-            if (savedPlaces.length === 0) {
-                container.innerHTML = `<p class="text-[11px] text-slate-400 italic text-center py-2">Список пуст</p>`;
-                return;
-            }
+            if (savedPlaces.length === 0) { container.innerHTML = `<p class="text-[11px] text-slate-400 italic text-center py-2">Список пуст</p>`; return; }
             container.innerHTML = savedPlaces.map((f, i) => `
                 <div onclick="map.flyTo({center:[${f.lng},${f.lat}], zoom:14})" class="bg-slate-50 hover:bg-indigo-50/60 border border-slate-100 rounded-lg p-2 transition flex items-center justify-between cursor-pointer mb-1">
                     <span class="font-medium text-slate-700 truncate pr-2 max-w-[85%]">${f.name}</span>
@@ -428,41 +449,19 @@
             `).join('');
         }
 
-        // --- УНИКАЛЬНАЯ ФИШКА: ТУГГЛ СЛОЯ ПРОБОК ---
-        function toggleTrafficLayer(btn) {
-            isTrafficActive = !isTrafficActive;
-            if (isTrafficActive) {
-                btn.classList.add('bg-indigo-600', 'text-white');
-                // Симуляция наложения трафика (в коммерческих картах это отдельный векторный source)
-                map.setPaintProperty('road_network', 'line-opacity', 0.6); 
-            } else {
-                btn.classList.remove('bg-indigo-600', 'text-white');
-            }
-        }
-
-        // --- ТУГГЛЫ ИНТЕРФЕЙСА ---
-        const sidebarCard = document.getElementById('sidebar-card');
-        const btnCloseSidebar = document.getElementById('btn-close-sidebar');
-        const btnRestoreSidebar = document.getElementById('btn-restore-sidebar');
-
-        btnCloseSidebar.addEventListener('click', () => {
-            sidebarCard.classList.add('sidebar-card-hidden');
-            btnRestoreSidebar.classList.remove('hidden');
+        // ИНТЕРФЕЙСНЫЕ СЛУШАТЕЛИ
+        document.getElementById('btn-close-sidebar').addEventListener('click', () => {
+            document.getElementById('sidebar-card').classList.add('sidebar-card-hidden');
+            document.getElementById('btn-restore-sidebar').classList.remove('hidden');
         });
-
-        btnRestoreSidebar.addEventListener('click', () => {
-            sidebarCard.classList.remove('sidebar-card-hidden');
-            btnRestoreSidebar.classList.add('hidden');
+        document.getElementById('btn-restore-sidebar').addEventListener('click', () => {
+            document.getElementById('sidebar-card').classList.remove('sidebar-card-hidden');
+            document.getElementById('btn-restore-sidebar').classList.add('hidden');
         });
-
         const btnLayers = document.getElementById('btn-layers');
         const dropdownLayers = document.getElementById('dropdown-layers');
         btnLayers.addEventListener('click', (e) => { e.stopPropagation(); dropdownLayers.classList.toggle('hidden'); });
         document.addEventListener('click', () => dropdownLayers.classList.add('hidden'));
-
-        function setMapStyle(styleKey) {
-            map.setStyle(mapStyles[styleKey]);
-        }
 
         renderFavoritesList();
     </script>
