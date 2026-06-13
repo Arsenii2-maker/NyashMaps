@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NyashMaps — MapTiler 3D MVP</title>
+    <title>NyashMaps — Полноценный Картографический Сервис</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- MapLibre GL JS -->
@@ -13,164 +13,259 @@
         body { margin: 0; padding: 0; overflow: hidden; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
         .ui-panel { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; }
-        .hidden-panel { transform: translateX(120%); opacity: 0; }
+        .hidden-panel { transform: translateX(130%); opacity: 0; }
         @media (max-width: 640px) {
-            .hidden-panel { transform: translateY(120%); opacity: 0; }
+            .hidden-panel { transform: translateY(130%); opacity: 0; }
         }
+        /* Кастомный стиль для маркеров на карте */
+        .custom-marker {
+            background-image: url('https://cdn-icons-png.flaticon.com/512/684/684908.png');
+            background-size: cover;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            filter: drop-shadow(0px 4px 8px rgba(99, 102, 241, 0.6));
+            transition: transform 0.2s;
+        }
+        .custom-marker:hover { transform: scale(1.2); }
     </style>
 </head>
 <body class="bg-gray-900 font-sans text-gray-800">
 
+    <!-- Основной контейнер карты -->
     <div id="map"></div>
 
-    <!-- Панель управления -->
-    <div class="absolute top-5 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-2xl flex items-center space-x-2 z-10 text-xs sm:text-sm font-semibold border border-white/20 max-w-[95%] overflow-x-auto whitespace-nowrap">
-        <span class="text-indigo-600 font-bold tracking-wider mr-1 hidden sm:inline">NyashMaps</span>
-        <button id="btn-2d" class="px-3 py-1.5 rounded-full bg-indigo-600 text-white shadow-sm transition">2D Схема</button>
-        <button id="btn-3d" class="px-3 py-1.5 rounded-full hover:bg-gray-200/70 transition">3D Город</button>
-        <button id="btn-sat" class="px-3 py-1.5 rounded-full hover:bg-gray-200/70 transition">Спутник</button>
-        <div class="w-px h-5 bg-gray-300"></div>
-        <button id="btn-time" class="px-3 py-1.5 rounded-full hover:bg-gray-800 hover:text-white transition text-indigo-600 flex items-center gap-1">
-            <span>🌙</span> Ночь
-        </button>
+    <!-- Левая панель: Поиск и Маршруты -->
+    <div class="absolute top-5 left-5 w-80 bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl z-10 p-4 border border-white/20 flex flex-col space-y-4">
+        <div class="flex items-center space-x-2">
+            <span class="text-2xl">🌍</span>
+            <span class="text-lg font-black tracking-tight text-indigo-600">NyashMaps Pro</span>
+        </div>
+        
+        <!-- Поиск (Макет) -->
+        <div class="relative">
+            <input type="text" placeholder="Поиск мест и небоскребов..." class="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <span class="absolute left-3 top-2.5 text-gray-400 text-sm">🔍</span>
+        </div>
+
+        <!-- Построение Маршрута (Mood Routing) -->
+        <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Генератор маршрутов</p>
+            <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+                <button onclick="buildRoute('green')" class="p-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition">🌳 Зеленый</button>
+                <button onclick="buildRoute('cyber')" class="p-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition">🌆 Кибер-Урбан</button>
+            </div>
+            <p id="route-status" class="text-[11px] text-gray-500 mt-2 text-center hidden">Маршрут успешно построен!</p>
+        </div>
     </div>
 
-    <!-- Боковая Информационная Панель -->
-    <div id="info-panel" class="ui-panel hidden-panel absolute bottom-5 sm:bottom-auto sm:top-5 right-5 left-5 sm:left-auto sm:w-80 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl z-10 overflow-hidden border border-gray-100 flex flex-col max-h-[40vh] sm:max-h-none">
-        <div class="h-32 sm:h-44 bg-cover bg-center relative" style="background-image: url('https://images.unsplash.com/photo-1519501025264-65ba15a82390?q=80&w=600&auto=format&fit=crop');">
-            <button id="close-panel" class="absolute top-3 right-3 bg-black/40 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/60 transition font-bold">✕</button>
+    <!-- Верхняя панель: Переключатель 5 ТЕМ -->
+    <div class="absolute top-5 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-2xl flex items-center space-x-1 z-10 text-xs font-bold border border-white/20 max-w-[90%] overflow-x-auto whitespace-nowrap">
+        <button onclick="changeTheme('streets', this)" class="px-3 py-1.5 rounded-full bg-indigo-600 text-white transition">2D Схема</button>
+        <button onclick="changeTheme('3d', this)" class="px-3 py-1.5 rounded-full hover:bg-gray-200/70 transition">3D Город</button>
+        <button onclick="changeTheme('satellite', this)" class="px-3 py-1.5 rounded-full hover:bg-gray-200/70 transition">Спутник</button>
+        <button onclick="changeTheme('dark', this)" class="px-3 py-1.5 rounded-full hover:bg-gray-200/70 transition text-indigo-600">🌙 Ночь</button>
+        <button onclick="changeTheme('vintage', this)" class="px-3 py-1.5 rounded-full hover:bg-gray-200/70 transition text-amber-700">📜 Винтаж</button>
+    </div>
+
+    <!-- Правая Правая Информационная Панель (Кастомная для каждого места) -->
+    <div id="info-panel" class="ui-panel hidden-panel absolute bottom-5 sm:bottom-auto sm:top-5 right-5 left-5 sm:left-auto sm:w-85 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl z-10 overflow-hidden border border-gray-100 flex flex-col max-h-[45vh] sm:max-h-none">
+        <!-- Картинка локации -->
+        <div id="panel-img" class="h-36 sm:h-44 bg-cover bg-center relative">
+            <button onclick="closePanel()" class="absolute top-3 right-3 bg-black/40 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/60 transition font-bold">✕</button>
         </div>
-        <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+        
+        <!-- Контент -->
+        <div class="p-5 flex-1 flex flex-col justify-between">
             <div>
-                <h2 id="location-title" class="text-lg sm:text-xl font-bold text-gray-900 mb-1 tracking-tight">Координаты</h2>
-                <p class="text-[10px] text-gray-400 mb-3 font-medium uppercase tracking-wider">Инфо-капсула места</p>
-                <div class="flex flex-wrap gap-1.5 mb-3">
-                    <span class="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold rounded-md border border-green-200/50">Открыто</span>
-                    <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-md border border-indigo-200/50">#Вайб</span>
+                <h2 id="panel-title" class="text-xl font-bold text-gray-900 mb-1 tracking-tight">Название места</h2>
+                <p id="panel-coords" class="text-[10px] text-gray-400 mb-3 font-medium uppercase tracking-wider">Координаты</p>
+                
+                <!-- Теги -->
+                <div id="panel-tags" class="flex flex-wrap gap-1.5 mb-3">
+                    <!-- Генерируются динамически -->
                 </div>
-                <p class="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
-                    Здесь будут ваши Капсулы Времени.
+                
+                <p id="panel-desc" class="text-sm text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    Описание...
                 </p>
             </div>
-            <button class="w-full mt-4 bg-indigo-600 text-white py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition text-xs sm:text-sm">
+            <button onclick="playVibe()" class="w-full mt-4 bg-indigo-600 text-white py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition text-sm">
                 ▶ Послушать Вайб Места
             </button>
         </div>
     </div>
 
     <script>
-        // ВАЖНО: Замени этот текст на свой настоящий ключ из MapTiler
+        // ВАЖНО: Вставь сюда свой рабочий API Ключ MapTiler
         const MAPTILER_KEY = 'p3hK1aeFahnKHvtUUKfN';
 
-        const styles = {
-            streets: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
-            satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${MAPTILER_KEY}`,
-            dark: `https://api.maptiler.com/maps/darkmatter/style.json?key=${MAPTILER_KEY}`
+        // База данных наших уникальных мест на карте
+        const locationsDB = {
+            'moscow-city': {
+                title: 'Москва-Сити',
+                coords: [37.5341, 55.7471],
+                desc: 'Главный кластер небоскребов и футуристичной архитектуры. Центр притяжения любителей урбанизма и высотных панорам.',
+                tags: ['#Небоскребы', '#Урбан', '#Высота'],
+                img: 'https://images.unsplash.com/photo-1547448415-e9f5b28e570d?q=80&w=600&auto=format&fit=crop'
+            },
+            'burj-khalifa': {
+                title: 'Бурдж-Халифа (Дубай)',
+                coords: [55.2744, 25.1972],
+                desc: 'Самое высокое здание в мире. Настоящее чудо инженерной мысли посреди пустыни, уходящее шпилем в облака.',
+                tags: ['#Рекорд', '#Мега-Структура', '#Жара'],
+                img: 'https://images.unsplash.com/photo-1582672060674-bc2bd808a8b5?q=80&w=600&auto=format&fit=crop'
+            },
+            'tokyo-skytree': {
+                title: 'Tokyo Skytree',
+                coords: [139.8107, 35.7100],
+                desc: 'Знаменитая токийская телебашня, откуда открывается лучший неоновый вид на бесконечный мегаполис.',
+                tags: ['#Токио', '#Неон', '#Телебашня'],
+                img: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=600&auto=format&fit=crop'
+            }
         };
 
-        let map;
+        // 5 разных тем оформления
+        const styleURLs = {
+            streets: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
+            satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${MAPTILER_KEY}`,
+            dark: `https://api.maptiler.com/maps/darkmatter/style.json?key=${MAPTILER_KEY}`,
+            vintage: `https://api.maptiler.com/maps/backdrop/style.json?key=${MAPTILER_KEY}`, // Мягкий винтажный стиль
+            '3d': `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}` // 3D использует базовую схему, но с наклоном
+        };
 
-        try {
-            // ИСПРАВЛЕНО: Убран дефис в названии объекта (maplibregl)
-            map = new maplibregl.Map({
-                container: 'map',
-                style: styles.streets,
-                center: [37.6173, 55.7558], 
-                zoom: 14,
-                pitch: 0,
-                bearing: 0,
-                antialias: true
-            });
+        // Инициализация карты (Стартуем с Москва-Сити)
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: styleURLs.streets,
+            center: [37.5341, 55.7471],
+            zoom: 14.5,
+            pitch: 0,
+            antialias: true
+        });
 
-            // Включение 3D зданий
-            function enable3DBuildings() {
-                if (map.getLayer('3d-buildings')) return;
-                if (map.getSource('openmaptiles')) {
-                    map.addLayer({
-                        'id': '3d-buildings',
-                        'source': 'openmaptiles',
-                        'source-layer': 'building',
-                        'type': 'fill-extrusion',
-                        'minzoom': 14,
-                        'paint': {
-                            'fill-extrusion-color': map.getStyle().name.includes('Dark') ? '#2c3e50' : '#f3f4f6',
-                            'fill-extrusion-height': ['get', 'render_height'],
-                            'fill-extrusion-base': ['get', 'render_min_height'],
-                            'fill-extrusion-opacity': 0.85
-                        }
-                    });
-                }
+        // Функция рендеринга 3D зданий
+        function add3DLayer() {
+            if (map.getLayer('3d-buildings')) return;
+            if (map.getSource('openmaptiles')) {
+                map.addLayer({
+                    'id': '3d-buildings',
+                    'source': 'openmaptiles',
+                    'source-layer': 'building',
+                    'type': 'fill-extrusion',
+                    'minzoom': 13,
+                    'paint': {
+                        'fill-extrusion-color': '#f3f4f6',
+                        'fill-extrusion-height': ['get', 'render_height'],
+                        'fill-extrusion-base': ['get', 'render_min_height'],
+                        'fill-extrusion-opacity': 0.85
+                    }
+                });
             }
-
-            map.on('style.load', () => {
-                if (map.getPitch() > 0) enable3DBuildings();
-            });
-
-            // Клик по карте
-            map.on('click', (e) => {
-                document.getElementById('location-title').innerText = `${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)}`;
-                document.getElementById('info-panel').classList.remove('hidden-panel');
-            });
-
-        } catch (err) {
-            console.error("Ошибка инициализации карты:", err);
-            alert("Ошибка загрузки карты. Проверь, правильно ли указан MAPTILER_KEY в коде.");
         }
 
-        // --- УПРАВЛЕНИЕ КНОПКАМИ (Они теперь будут кликаться в любом случае) ---
-        const btn2d = document.getElementById('btn-2d');
-        const btn3d = document.getElementById('btn-3d');
-        const btnSat = document.getElementById('btn-sat');
-        const btnTime = document.getElementById('btn-time');
+        map.on('style.load', () => {
+            if (map.getPitch() > 0) add3DLayer();
+        });
 
-        function setActiveButton(activeBtn) {
-            [btn2d, btn3d, btnSat].forEach(b => {
-                b.className = "px-3 py-1.5 rounded-full hover:bg-gray-200/70 transition";
+        // --- СОЗДАНИЕ МАРКЕРОВ НА КАРТЕ ---
+        Object.keys(locationsDB).forEach(key => {
+            const loc = locationsDB[key];
+            
+            // Создаем HTML элемент для маркера
+            const el = document.createElement('div');
+            el.className = 'custom-marker';
+            
+            // Добавляем маркер на карту
+            new maplibregl.Marker(el)
+                .setLngLat(loc.coords)
+                .addTo(map);
+
+            // Клик по маркеру открывает ИМЕННО ЭТО МЕСТО
+            el.addEventListener('click', (e) => {
+                e.stopPropagation(); // Чтобы не срабатывал общий клик по карте
+                openSpecificLocation(key);
             });
-            activeBtn.className = "px-3 py-1.5 rounded-full bg-indigo-600 text-white shadow-sm transition";
+        });
+
+        // Функция открытия конкретного места в инфо-панели
+        function openSpecificLocation(key) {
+            const loc = locationsDB[key];
+            
+            document.getElementById('panel-title').innerText = loc.title;
+            document.getElementById('panel-coords').innerText = `КООРДИНАТЫ: ${loc.coords[1]}, ${loc.coords[0]}`;
+            document.getElementById('panel-desc').innerText = loc.desc;
+            document.getElementById('panel-img').style.backgroundImage = `url('${loc.img}')`;
+            
+            // Рендерим теги
+            const tagsCont = document.getElementById('panel-tags');
+            tagsCont.innerHTML = loc.tags.map(t => `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-md border border-indigo-200/50">${t}</span>`).join('');
+            
+            // Показываем панель
+            document.getElementById('info-panel').classList.remove('hidden-panel');
+
+            // Плавно летим камерой к этому маркеру с крутым наклоном!
+            map.easeTo({
+                center: loc.coords,
+                zoom: 16,
+                pitch: 55,
+                bearing: -10,
+                duration: 1200
+            });
         }
 
-        btn2d.addEventListener('click', () => {
-            setActiveButton(btn2d);
-            if(map) {
-                map.setStyle(isNight ? styles.dark : styles.streets);
+        // Клик по случайному месту на карте (общие координаты)
+        map.on('click', (e) => {
+            document.getElementById('panel-title').innerText = 'Свободная локация';
+            document.getElementById('panel-coords').innerText = `Координаты: ${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)}`;
+            document.getElementById('panel-desc').innerText = 'Вы выбрали свободную точку на карте. Здесь пока нет созданных Капсул Времени, но вы можете стать первым!';
+            document.getElementById('panel-img').style.backgroundImage = `url('https://images.unsplash.com/photo-1524661135339-9140b00787e3?q=80&w=600&auto=format&fit=crop')`;
+            document.getElementById('panel-tags').innerHTML = '<span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-md">#СвободнаяЗона</span>';
+            
+            document.getElementById('info-panel').classList.remove('hidden-panel');
+        });
+
+        // --- ПЕРЕКЛЮЧЕНИЕ 5 ТЕМ ---
+        function changeTheme(themeId, clickedButton) {
+            // Сброс стилей кнопок меню тем
+            const buttons = clickedButton.parentNode.querySelectorAll('button');
+            buttons.forEach(b => b.className = "px-3 py-1.5 rounded-full hover:bg-gray-200/70 transition text-gray-700");
+            clickedButton.className = "px-3 py-1.5 rounded-full bg-indigo-600 text-white transition";
+
+            if (themeId === '3d') {
+                map.setStyle(styleURLs.streets);
+                map.easeTo({ pitch: 60, bearing: -15, duration: 800 });
+            } else if (themeId === 'streets') {
+                map.setStyle(styleURLs.streets);
                 map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
-            }
-        });
-
-        btn3d.addEventListener('click', () => {
-            setActiveButton(btn3d);
-            if(map) {
-                map.setStyle(isNight ? styles.dark : styles.streets);
-                map.easeTo({ pitch: 55, bearing: -15, duration: 800 });
-            }
-        });
-
-        btnSat.addEventListener('click', () => {
-            setActiveButton(btnSat);
-            if(map) {
-                map.setStyle(styles.satellite);
-                map.easeTo({ pitch: 45, duration: 800 });
-            }
-        });
-
-        let isNight = false;
-        btnTime.addEventListener('click', () => {
-            isNight = !isNight;
-            if (isNight) {
-                btnTime.innerHTML = "<span>☀️</span> День";
-                btnTime.className = "px-3 py-1.5 rounded-full bg-amber-500 text-white transition font-semibold";
-                if (map && map.getStyle().id !== 'satellite') map.setStyle(styles.dark);
             } else {
-                btnTime.innerHTML = "<span>🌙</span> Ночь";
-                btnTime.className = "px-3 py-1.5 rounded-full hover:bg-gray-800 hover:text-white transition text-indigo-600 font-semibold";
-                if (map && map.getStyle().id !== 'satellite') map.setStyle(styles.streets);
+                map.setStyle(styleURLs[themeId]);
+                if (themeId === 'satellite') map.easeTo({ pitch: 45, duration: 800 });
             }
-        });
+        }
 
-        document.getElementById('close-panel').addEventListener('click', () => {
+        // Имитация функции "Послушать Вайб"
+        function playVibe() {
+            alert("🔊 Воспроизведение аудио-эфемеры места... (Вайб успешно передан!)");
+        }
+
+        // Закрытие панели
+        function closePanel() {
             document.getElementById('info-panel').classList.add('hidden-panel');
-        });
+        }
+
+        // Имитация Умного Маршрута (Mood Routing)
+        function buildRoute(type) {
+            const status = document.getElementById('route-status');
+            status.classList.remove('hidden');
+            if (type === 'green') {
+                status.innerText = '🌳 Построен экологичный маршрут в обход шоссе!';
+                status.className = 'text-[11px] text-emerald-600 font-bold mt-2 text-center';
+            } else {
+                status.innerText = '🌆 Построен зрелищный маршрут через лучшие небоскребы!';
+                status.className = 'text-[11px] text-purple-600 font-bold mt-2 text-center';
+            }
+        }
     </script>
 </body>
 </html>
