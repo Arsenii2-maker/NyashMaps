@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyashMaps — MapTiler 3D MVP</title>
+    <!-- Tailwind CSS для красивого интерфейса -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MapLibre GL JS (Движок для карт MapTiler) -->
+    <script src="https://unpkg.com/maplibre-gl@^4.0.0/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@^4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        .ui-panel { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; }
+        .hidden-panel { transform: translateX(120%); opacity: 0; }
+    </style>
+</head>
+<body class="bg-gray-900 font-sans text-gray-800">
+
+    <!-- Карта -->
+    <div id="map"></div>
+
+    <!-- Верхняя панель управления слоями и темами -->
+    <div class="absolute top-5 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-md px-5 py-2 rounded-full shadow-2xl flex items-center space-x-3 z-10 text-sm font-semibold border border-white/20">
+        <span class="text-indigo-600 font-bold tracking-wider mr-2">NyashMaps</span>
+        <button id="btn-2d" class="px-4 py-1.5 rounded-full bg-indigo-600 text-white shadow-sm transition">2D Схема</button>
+        <button id="btn-3d" class="px-4 py-1.5 rounded-full hover:bg-gray-200/70 transition">3D Город</button>
+        <button id="btn-sat" class="px-4 py-1.5 rounded-full hover:bg-gray-200/70 transition">Спутник</button>
+        <div class="w-px h-5 bg-gray-300"></div>
+        <button id="btn-time" class="px-4 py-1.5 rounded-full hover:bg-gray-800 hover:text-white transition text-indigo-600 flex items-center gap-1">
+            <span>🌙</span> Ночь
+        </button>
+    </div>
+
+    <!-- Боковая Информационная Панель -->
+    <div id="info-panel" class="ui-panel hidden-panel absolute top-5 right-5 w-80 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl z-10 overflow-hidden border border-gray-100/80 flex flex-col">
+        <!-- Картинка-превью локации -->
+        <div class="h-44 bg-cover bg-center relative" style="background-image: url('https://images.unsplash.com/photo-1519501025264-65ba15a82390?q=80&w=600&auto=format&fit=crop');">
+            <button id="close-panel" class="absolute top-3 right-3 bg-black/40 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/60 transition font-bold">✕</button>
+            <div class="absolute bottom-3 left-4 bg-indigo-600 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded">
+                Локация исследуется
+            </div>
+        </div>
+        
+        <!-- Контент панели -->
+        <div class="p-5 flex-1 flex flex-col justify-between">
+            <div>
+                <h2 id="location-title" class="text-xl font-bold text-gray-900 mb-1 tracking-tight">Загрузка координат...</h2>
+                <p class="text-xs text-gray-400 mb-4 font-medium uppercase tracking-wider">Инфо-капсула места</p>
+                
+                <!-- Теги / Фишки -->
+                <div class="flex flex-wrap gap-1.5 mb-5">
+                    <span class="px-2.5 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-md border border-green-200/50">Открыто</span>
+                    <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-md border border-indigo-200/50">#Архитектура</span>
+                    <span class="px-2.5 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded-md border border-purple-200/50">#Вайб</span>
+                </div>
+                
+                <p class="text-sm text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    Здесь будет выводиться краткое описание места, его загруженность или ваши личные заметки (Капсулы Времени).
+                </p>
+            </div>
+
+            <!-- Кнопка интерактива -->
+            <button class="w-full mt-5 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 hover:shadow-indigo-700/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm">
+                <span>▶</span> Послушать Вайб Места
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ВАЖНО: Замени этот текст на свой настоящий ключ из личного кабинета MapTiler
+        const MAPTILER_KEY = p3hK1aeFahnKHvtUUKfN;
+
+        // Список стилей от MapTiler
+        const styles = {
+            streets: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
+            satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${MAPTILER_KEY}`,
+            dark: `https://api.maptiler.com/maps/darkmatter/style.json?key=${MAPTILER_KEY}`
+        };
+
+        // Инициализация карты MapLibre
+        const map = new maplibre-gl.Map({
+            container: 'map',
+            style: styles.streets,
+            center: [37.6173, 55.7558], // Начальные координаты (Москва, можно поменять на любые)
+            zoom: 15,
+            pitch: 0, // По умолчанию плоская 2D карта
+            bearing: 0,
+            antialias: true
+        });
+
+        // Функция автоматического добавления 3D зданий при смене стилей
+        function enable3DBuildings() {
+            // Проверяем, есть ли уже слой зданий, чтобы не дублировать
+            if (map.getLayer('3d-buildings')) return;
+
+            // Источник данных в стилях MapTiler обычно называется 'openmaptiles'
+            if (map.getSource('openmaptiles')) {
+                map.addLayer({
+                    'id': '3d-buildings',
+                    'source': 'openmaptiles',
+                    'source-layer': 'building',
+                    'type': 'fill-extrusion',
+                    'minzoom': 14,
+                    'paint': {
+                        // Плавное окрашивание в зависимости от освещения здания
+                        'fill-extrusion-color': map.getStyle().name.includes('Dark') ? '#2c3e50' : '#f3f4f6',
+                        'fill-extrusion-height': ['get', 'render_height'],
+                        'fill-extrusion-base': ['get', 'render_min_height'],
+                        'fill-extrusion-opacity': 0.85
+                    }
+                });
+            }
+        }
+
+        // Ждем загрузки стилей для применения 3D эффектов
+        map.on('style.load', () => {
+            // Если выбран режим 3D (определяем по наклону карты), включаем объем зданий
+            if (map.getPitch() > 0) {
+                enable3DBuildings();
+            }
+        });
+
+        // --- УПРАВЛЕНИЕ РЕЖИМАМИ (ИНТЕРФЕЙС) ---
+        const btn2d = document.getElementById('btn-2d');
+        const btn3d = document.getElementById('btn-3d');
+        const btnSat = document.getElementById('btn-sat');
+        const btnTime = document.getElementById('btn-time');
+
+        function resetActiveButtons() {
+            [btn2d, btn3d, btnSat].forEach(b => b.className = "px-4 py-1.5 rounded-full hover:bg-gray-200/70 transition");
+        }
+
+        // Режим 2D
+        btn2d.addEventListener('click', () => {
+            resetActiveButtons();
+            btn2d.className = "px-4 py-1.5 rounded-full bg-indigo-600 text-white shadow-sm transition";
+            map.setStyle(isNight ? styles.dark : styles.streets);
+            map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
+        });
+
+        // Режим 3D
+        btn3d.addEventListener('click', () => {
+            resetActiveButtons();
+            btn3d.className = "px-4 py-1.5 rounded-full bg-indigo-600 text-white shadow-sm transition";
+            map.setStyle(isNight ? styles.dark : styles.streets);
+            // Наклоняем камеру для отображения трехмерности
+            map.easeTo({ pitch: 55, bearing: -15, duration: 800 });
+        });
+
+        // Режим Спутника
+        btnSat.addEventListener('click', () => {
+            resetActiveButtons();
+            btnSat.className = "px-4 py-1.5 rounded-full bg-indigo-600 text-white shadow-sm transition";
+            map.setStyle(styles.satellite);
+            map.easeTo({ pitch: 45, duration: 800 });
+        });
+
+        // Смена Времени суток (День/Ночь)
+        let isNight = false;
+        btnTime.addEventListener('click', () => {
+            isNight = !isNight;
+            if (isNight) {
+                btnTime.innerHTML = "<span>☀️</span> День";
+                btnTime.className = "px-4 py-1.5 rounded-full bg-amber-500 text-white transition font-semibold";
+                if (map.getStyle().styleJson.id !== 'satellite') {
+                    map.setStyle(styles.dark);
+                }
+            } else {
+                btnTime.innerHTML = "<span>🌙</span> Ночь";
+                btnTime.className = "px-4 py-1.5 rounded-full hover:bg-gray-800 hover:text-white transition text-indigo-600 font-semibold";
+                if (map.getStyle().styleJson.id !== 'satellite') {
+                    map.setStyle(styles.streets);
+                }
+            }
+        });
+
+        // --- ЛОГИКА ИНФО-ПАНЕЛИ ---
+        const infoPanel = document.getElementById('info-panel');
+        const locationTitle = document.getElementById('location-title');
+
+        // Клик по карте открывает панель с координатами
+        map.on('click', (e) => {
+            const lat = e.lngLat.lat.toFixed(4);
+            const lng = e.lngLat.lng.toFixed(4);
+            locationTitle.innerText = `${lat}, ${lng}`;
+            infoPanel.classList.remove('hidden-panel');
+        });
+
+        // Закрытие панели
+        document.getElementById('close-panel').addEventListener('click', () => {
+            infoPanel.classList.add('hidden-panel');
+        });
+    </script>
+</body>
+</html>
